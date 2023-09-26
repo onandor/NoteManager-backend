@@ -1,6 +1,7 @@
 package com.onandor.dao
 
 import com.onandor.models.Notes
+import io.ktor.server.application.*
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -8,12 +9,12 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseFactory {
-    fun init() {
+    fun init(environment: ApplicationEnvironment) {
         val database = Database.connect(
-            url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
-            user = "root",
-            driver = "org.h2.Driver",
-            password = ""
+            url = environment.config.property("ktor.database.url").getString(),
+            user = environment.config.property("ktor.database.user").getString(),
+            driver = environment.config.property("ktor.database.driver").getString(),
+            password = environment.config.property("ktor.database.password").getString()
         )
         transaction(database) {
             SchemaUtils.create(Notes)
