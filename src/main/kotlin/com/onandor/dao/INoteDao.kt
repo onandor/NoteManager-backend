@@ -10,7 +10,7 @@ interface INoteDao {
 
     suspend fun create(userId: String, note: Note): String
 
-    suspend fun update(userId: String, note: Note)
+    suspend fun update(userId: String, note: Note): Int
 
-    suspend fun delete(userId: String, noteId: String)
+    suspend fun delete(userId: String, noteId: String): Int
 }

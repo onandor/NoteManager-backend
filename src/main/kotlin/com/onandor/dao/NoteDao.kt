@@ -40,7 +40,7 @@ class NoteDao : INoteDao {
         }[Notes.id]
     }
 
-    override suspend fun update(userId: String, note: Note): Unit = dbQuery {
+    override suspend fun update(userId: String, note: Note): Int = dbQuery {
         Notes.update( { Notes.userId eq userId and (Notes.id eq note.id) } ) {
             it[title] = note.title
             it[content] = note.content
@@ -49,7 +49,7 @@ class NoteDao : INoteDao {
         }
     }
 
-    override suspend fun delete(userId: String, noteId: String): Unit = dbQuery {
+    override suspend fun delete(userId: String, noteId: String): Int = dbQuery {
         Notes.deleteWhere { Notes.userId eq userId and (Notes.id eq noteId) }
     }
 }
