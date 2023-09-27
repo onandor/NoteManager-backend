@@ -1,6 +1,7 @@
 package com.onandor.dao
 
 import com.onandor.models.Notes
+import com.onandor.models.Users
 import io.ktor.server.application.*
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
@@ -18,6 +19,7 @@ object DatabaseFactory {
         )
         transaction(database) {
             SchemaUtils.create(Notes)
+            SchemaUtils.create(Users)
         }
     }
 
