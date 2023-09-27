@@ -6,6 +6,7 @@ import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
@@ -21,9 +22,15 @@ class Notes() {
 fun Application.configureNoteRoutes() {
     routing {
         // Get all notes of a user
-        get<Notes> {
-            val notes: List<Note> = noteDao.getAllByUser("todo")
-            call.respond(HttpStatusCode.OK, notes)
+        authenticate {
+            get<Notes> {
+                val principal = call.principal<JWTPrincipal>()
+                val email = principal!!.payload.getClaim("email").asString()
+                val expiresAt = principal.expiresAt?.time?.minus(System.currentTimeMillis())
+                println(expiresAt)
+                val notes: List<Note> = noteDao.getAllByUser("todo")
+                call.respond(HttpStatusCode.OK, notes)
+            }
         }
 
         // Get a specific note of a user by note id
