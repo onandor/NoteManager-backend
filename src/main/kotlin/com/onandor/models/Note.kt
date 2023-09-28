@@ -1,12 +1,7 @@
 package com.onandor.models
 
-import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.javatime.CurrentDateTime
 import org.jetbrains.exposed.sql.javatime.datetime
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 
 data class Note(
@@ -20,7 +15,7 @@ data class Note(
 
 object Notes: Table() {
     val id = varchar("id", length = 36)
-    val userId = varchar("user_id", length = 36)
+    val userId = integer("user_id")
     val title = varchar("title", length = 2048)
     val content = varchar("content", length = 65536)
     val location = integer("location")
