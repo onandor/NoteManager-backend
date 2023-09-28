@@ -11,5 +11,7 @@ interface IUserDao {
 
     suspend fun getByEmail(email: String): User?
 
+    suspend fun getById(userId: Int): User?
+
     suspend fun getAll(): List<User>
 }

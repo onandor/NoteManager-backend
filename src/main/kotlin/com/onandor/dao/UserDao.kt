@@ -30,6 +30,12 @@ class UserDao : IUserDao {
             .singleOrNull()
     }
 
+    override suspend fun getById(userId: Int): User? = dbQuery {
+        Users.select { Users.id eq userId }
+            .map(::resultRowToUser)
+            .singleOrNull()
+    }
+
     override suspend fun getAll(): List<User> = dbQuery {
         Users.selectAll().map(::resultRowToUser)
     }

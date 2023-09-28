@@ -1,6 +1,7 @@
 package com.onandor.dao
 
 import com.onandor.models.Notes
+import com.onandor.models.RefreshTokens
 import com.onandor.models.Users
 import io.ktor.server.application.*
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,7 @@ object DatabaseFactory {
         transaction(database) {
             SchemaUtils.create(Notes)
             SchemaUtils.create(Users)
+            SchemaUtils.create(RefreshTokens)
         }
     }
 

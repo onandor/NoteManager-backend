@@ -4,12 +4,15 @@ import at.favre.lib.crypto.bcrypt.BCrypt
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.onandor.dao.refreshTokenDao
 import com.onandor.dao.userDao
+import com.onandor.models.RefreshToken
 import com.onandor.models.User
 import com.onandor.plugins.JwkProviderFactory
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.resources.*
@@ -19,6 +22,7 @@ import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
+import java.time.Duration
 import java.util.*
 
 @Resource("/auth")
@@ -28,6 +32,9 @@ class Auth() {
 
     @Resource("register")
     class Register(val parent: Auth = Auth())
+
+    @Resource("refresh")
+    class Refresh(val parent: Auth = Auth())
 }
 
 fun Application.configureAuthRoutes() {
@@ -35,6 +42,32 @@ fun Application.configureAuthRoutes() {
     val privateKeyString = JwkProviderFactory.getJwtPrivateKey()
     val jwtAudience = JwkProviderFactory.getJwtAudience()
     val jwtIssuer = JwkProviderFactory.getJwtIssuer()
+
+    fun createAccessToken(user: User): String {
+        val currentTime = System.currentTimeMillis()
+        val publicKey = jwkProvider.get("whQeRd1vdutXo11e7zAi1").publicKey
+        val keySpecPKCS8 = PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyString))
+        val privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpecPKCS8)
+        return JWT.create()
+            .withAudience(jwtAudience)
+            .withIssuer(jwtIssuer)
+            .withClaim("email", user.email)
+            .withExpiresAt(Date(currentTime + Duration.ofMinutes(20).toMillis()))
+            .sign(Algorithm.RSA256(publicKey as RSAPublicKey, privateKey as RSAPrivateKey))
+    }
+
+    suspend fun createRefreshToken(user: User): String {
+        val refreshTokenValue = UUID.randomUUID().toString()
+        val currentTime = System.currentTimeMillis()
+        val refreshToken = RefreshToken(
+            userId = user.id,
+            value = refreshTokenValue,
+            expiresAt = Date(currentTime + Duration.ofDays(14).toMillis()).time,
+            valid = true
+        )
+        refreshTokenDao.create(refreshToken)
+        return refreshTokenValue
+    }
 
     routing {
         staticResources("/.well-known", "well-known")
@@ -53,16 +86,10 @@ fun Application.configureAuthRoutes() {
                 return@post
             }
 
-            val publicKey = jwkProvider.get("whQeRd1vdutXo11e7zAi1").publicKey
-            val keySpecPKCS8 = PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyString))
-            val privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpecPKCS8)
-            val token = JWT.create()
-                .withAudience(jwtAudience)
-                .withIssuer(jwtIssuer)
-                .withClaim("email", dbUser.email)
-                .withExpiresAt(Date(System.currentTimeMillis() + 1200000))
-                .sign(Algorithm.RSA256(publicKey as RSAPublicKey, privateKey as RSAPrivateKey))
-            call.respond(hashMapOf("token" to token))
+            refreshTokenDao.deleteAllByUser(dbUser.id)
+            val accessToken: String = createAccessToken(dbUser)
+            val refreshToken: String = createRefreshToken(dbUser)
+            call.respond(HttpStatusCode.OK, hashMapOf("access_token" to accessToken, "refresh_token" to refreshToken))
         }
 
         post<Auth.Register> {
@@ -81,10 +108,45 @@ fun Application.configureAuthRoutes() {
             call.respond(HttpStatusCode.Created, userId)
         }
 
+        post<Auth.Refresh> {
+            val oldRefreshTokenValue: String = call.receive()
+            val oldRefreshToken: RefreshToken? = refreshTokenDao.getByValue(oldRefreshTokenValue)
+            val currentTime = System.currentTimeMillis()
+
+            if (oldRefreshToken == null) {
+                call.respond(HttpStatusCode.NotFound)
+                return@post
+            }
+            else if (!oldRefreshToken.valid || oldRefreshToken.expiresAt < currentTime) {
+                println("Deleting refresh tokens")
+                refreshTokenDao.deleteAllByUser(oldRefreshToken.userId)
+                call.respond(HttpStatusCode.Unauthorized)
+                return@post
+            }
+
+            val user: User? = userDao.getById(oldRefreshToken.userId)
+            if (user == null) {
+                refreshTokenDao.deleteAllByUser(oldRefreshToken.userId)
+                call.respond(HttpStatusCode.NotFound)
+                return@post
+            }
+
+            refreshTokenDao.invalidate(oldRefreshToken)
+            val accessToken = createAccessToken(user)
+            val newRefreshToken: String = createRefreshToken(user)
+            call.respond(HttpStatusCode.OK, hashMapOf("access_token" to accessToken, "refresh_token" to newRefreshToken))
+        }
+
         // TODO: for testing only
         get<Auth> {
             val users = userDao.getAll()
             call.respond(HttpStatusCode.OK, users)
+        }
+
+        // TODO: for testing only
+        get<Auth.Refresh> {
+            val refreshTokens = refreshTokenDao.getAll()
+            call.respond(HttpStatusCode.OK, refreshTokens)
         }
     }
 }
