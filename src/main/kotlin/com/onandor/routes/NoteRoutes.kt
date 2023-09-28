@@ -23,21 +23,16 @@ class Notes() {
 
 fun Application.configureNoteRoutes() {
     routing {
-        suspend fun getUserFromPrincipal(call: ApplicationCall): User? {
+        suspend fun getUserFromPrincipal(call: ApplicationCall): User {
             val principal = call.principal<JWTPrincipal>()
-            val email = principal!!.payload.getClaim("email").asString()
-            return userDao.getByEmail(email)
+            val userId = principal!!.payload.getClaim("userId").asInt()
+            return userDao.getById(userId)!!
         }
 
         // Get all notes of a user
         authenticate {
             get<Notes> {
-                val user: User? = getUserFromPrincipal(call)
-                if (user == null) {
-                    call.respond(HttpStatusCode.NotFound)
-                    return@get
-                }
-
+                val user: User = getUserFromPrincipal(call)
                 val notes: List<Note> = noteDao.getAllByUser(user.id)
                 call.respond(HttpStatusCode.OK, notes)
             }
@@ -46,12 +41,7 @@ fun Application.configureNoteRoutes() {
         // Get a specific note of a user by note id
         authenticate {
             get<Notes.Id> {noteId ->
-                val user: User? = getUserFromPrincipal(call)
-                if (user == null) {
-                    call.respond(HttpStatusCode.NotFound)
-                    return@get
-                }
-
+                val user: User = getUserFromPrincipal(call)
                 val note: Note? = noteDao.getById(user.id, noteId.id)
                 if (note == null)
                     call.respond(HttpStatusCode.NotFound)
@@ -63,12 +53,7 @@ fun Application.configureNoteRoutes() {
         // Add new note
         authenticate {
             post<Notes> {
-                val user: User? = getUserFromPrincipal(call)
-                if (user == null) {
-                    call.respond(HttpStatusCode.NotFound)
-                    return@post
-                }
-
+                val user: User = getUserFromPrincipal(call)
                 val note: Note = call.receive()
                 val noteId = noteDao.create(user.id, note)
                 call.respond(HttpStatusCode.Created, noteId)
@@ -78,12 +63,7 @@ fun Application.configureNoteRoutes() {
         // Update existing note
         authenticate {
             put<Notes> {
-                val user: User? = getUserFromPrincipal(call)
-                if (user == null) {
-                    call.respond(HttpStatusCode.NotFound)
-                    return@put
-                }
-
+                val user: User = getUserFromPrincipal(call)
                 val note: Note = call.receive()
                 val result = noteDao.update(user.id, note)
                 if (result > 0)
@@ -96,12 +76,7 @@ fun Application.configureNoteRoutes() {
         // Delete note
         authenticate {
             delete<Notes.Id> { noteId ->
-                val user: User? = getUserFromPrincipal(call)
-                if (user == null) {
-                    call.respond(HttpStatusCode.NotFound)
-                    return@delete
-                }
-
+                val user: User = getUserFromPrincipal(call)
                 val result = noteDao.delete(user.id, noteId.id)
                 if (result > 0)
                     call.respond(HttpStatusCode.OK)

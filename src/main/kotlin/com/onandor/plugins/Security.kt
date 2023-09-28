@@ -1,5 +1,7 @@
 package com.onandor.plugins
 
+import com.onandor.dao.userDao
+import com.onandor.models.User
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -23,10 +25,14 @@ fun Application.configureSecurity() {
                 acceptLeeway(3)
             }
             validate { credential ->
-                if (credential.payload.audience.contains(jwtAudience))
+                val userId: Int = credential.payload.claims["userId"]?.asInt() ?: -1
+                val user: User? = userDao.getById(userId)
+                if (credential.payload.audience.contains(jwtAudience) && user != null) {
                     JWTPrincipal(credential.payload)
-                else
+                }
+                else {
                     null
+                }
             }
             challenge { defaultScheme, realm ->  
                 call.respond(HttpStatusCode.Unauthorized, "Token is not valid or has expired.")

@@ -13,6 +13,7 @@ import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.resources.*
@@ -51,7 +52,7 @@ fun Application.configureAuthRoutes() {
         return JWT.create()
             .withAudience(jwtAudience)
             .withIssuer(jwtIssuer)
-            .withClaim("email", user.email)
+            .withClaim("userId", user.id)
             .withExpiresAt(Date(currentTime + Duration.ofMinutes(20).toMillis()))
             .sign(Algorithm.RSA256(publicKey as RSAPublicKey, privateKey as RSAPrivateKey))
     }
@@ -135,6 +136,19 @@ fun Application.configureAuthRoutes() {
             val accessToken = createAccessToken(user)
             val newRefreshToken: String = createRefreshToken(user)
             call.respond(HttpStatusCode.OK, hashMapOf("access_token" to accessToken, "refresh_token" to newRefreshToken))
+        }
+
+        authenticate {
+            delete<Auth> {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal!!.payload.getClaim("userId").asInt()
+
+                val result = userDao.delete(userId)
+                if (result > 0)
+                    call.respond(HttpStatusCode.OK)
+                else
+                    call.respond(HttpStatusCode.NotFound)
+            }
         }
 
         // TODO: for testing only

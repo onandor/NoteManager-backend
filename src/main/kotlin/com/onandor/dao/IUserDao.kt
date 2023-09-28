@@ -14,4 +14,6 @@ interface IUserDao {
     suspend fun getById(userId: Int): User?
 
     suspend fun getAll(): List<User>
+
+    suspend fun delete(userId: Int): Int
 }

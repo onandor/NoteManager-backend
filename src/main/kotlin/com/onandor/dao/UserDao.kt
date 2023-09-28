@@ -3,11 +3,8 @@ package com.onandor.dao
 import com.onandor.dao.DatabaseFactory.dbQuery
 import com.onandor.models.User
 import com.onandor.models.Users
-import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.selectAll
 
 class UserDao : IUserDao {
 
@@ -38,6 +35,10 @@ class UserDao : IUserDao {
 
     override suspend fun getAll(): List<User> = dbQuery {
         Users.selectAll().map(::resultRowToUser)
+    }
+
+    override suspend fun delete(userId: Int): Int = dbQuery {
+        Users.deleteWhere { Users.id eq userId }
     }
 }
 
