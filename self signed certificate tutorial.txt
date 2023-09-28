@@ -1,0 +1,56 @@
+Steps for generating and setting up self signed keys and certificate for testing so I dont forgor
+
+==================================================================
+
+1. Generate a 4096 bit RSA key along with a self signed certificate:
+openssl req -x509 -newkey rsa:4096 -nodes -keyout key.pem -out cert.crt -days 365
+	- The 'Common Name' (CN) field must be a domain name (can be any, eg. 'test.com'), cannot be localhost or 127.0.0.1 (will touch on this later)
+
+2. Generate a public key for the previously generated private key:
+openssl rsa -in key.pem -pubout -outform PEM -out key.pem.pub
+
+3. Convert certificate from PEM into PKCS12
+openssl pkcs12 -export -in cert.crt -inkey key.pem -out keystore.p12 -name ${ALIAS}
+
+4. Generate JKS keystore from PKCS12 formatted certificate
+keytool -importkeystore -srckeystore keystore.p12 -srcstoretype pkcs12 -destkeystore keystore.jks
+
+The previous steps generate 4 important files:
+	- key.pem: contains the private RSA key
+	- key.pem.pub: contains the public RSA key
+	- cert.crt: contains the certificate in PEM format
+	- keystore.jks: contains the certificate in a keystore (JKS) format
+
+5. Setting up environment variables
+The 'application.conf' file contains the configuration needed by Ktor to set up the server. Under ktor.security multiple values are set using environment variables. These must be given values using the IDE's environment values.
+	- SSL_KEYSTORE: path to the 'keystore.jks' file, preferably placed in the project root or in the 'resources' folder
+	- SSL_KEY_ALIAS: alias used when converting certificate from PEM into PKCS12 format
+	- SSL_KEYSTORE_PASSWORD: password given when converting certificate from PEM into PKCS12 format
+	- SSL_PRIVATEKEY_PASSWORD: password given when generating JKS keystore from PKCS12 format
+	
+	- JWT_PRIVATE_KEY: the private key found in 'key.pem', without the BEGIN... and END... delimiters
+	- JWT_ISSUER: the host name (CN) used when generating the private key
+	- JWT_AUDIENCE: can be anything
+	- JWT_REALM: can be anything
+	
+6. Setting up public key
+Since the server is using the RSA algorithm to encrypt the JWT tokens, a public key needs to be set up. These are commonly stored in the 'jwks.json' file. The current route set up for it is "/.well-known/jwks.json"
+A JWK can be created using the public key found in 'key.pem.pub' using this tool: https://russelldavies.github.io/jwk-creator/
+The jwks.json formatting is the following:
+{
+	"keys": [
+		${JWK}
+	]
+}
+
+7. Registering the certificate into the Java keystore
+At this point after sending a request to one of the endpoints using a browser and using localhost as the address, it asks if the self signed certificate can be trusted. If the answer is yes, all the subsequent requests will be successful.
+This is not the case with the Java JVM, which by default doesn't trust any self signed certificates. Because of this, the generated 'cert.crt' needs to be added to the JDK-s 'cacerts' file, which contains the trusted certificates.
+
+The 'cacerts' file lives in ${JAVA_PATH}/lib/security
+The certificate can be added to the keystore using this command:
+keytool -importcert -file ${path to cert.crt} -alias ${alias} -keystore ${path to cacerts} -storepass changeit
+The alias doesn't really matter, it is only used later for deleting the certificate from the cacerts file.
+
+8. Registering the domain used while generating the private key in the 'hosts' file
+The reason to use a domain name instead of localhost/127.0.0.1 is because when a certificate with localhost as the CN is used, the JVM throws an 'java.security.cert.CertificateException: No name matching localhost found' error. There appeared to be other workarounds for this issue, but the easiest is to use a domain name, and edit the hosts file to resolve said domain to localhost. (eg. 127.0.0.1	test.com) This way the server can still be accessed on the localhost address, but the cerficate also works using the domain.

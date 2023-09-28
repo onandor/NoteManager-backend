@@ -16,10 +16,10 @@ object JwkProviderFactory {
     private var jwtRealm: String = ""
 
     fun init(environment: ApplicationEnvironment) {
-        jwtPrivateKey = environment.config.property("ktor.jwt.privateKey").getString()
-        jwtIssuer = environment.config.property("ktor.jwt.issuer").getString()
-        jwtAudience = environment.config.property("ktor.jwt.audience").getString()
-        jwtRealm = environment.config.property("ktor.jwt.realm").getString()
+        jwtPrivateKey = environment.config.property("ktor.security.jwt.privateKey").getString()
+        jwtIssuer = environment.config.property("ktor.security.jwt.issuer").getString()
+        jwtAudience = environment.config.property("ktor.security.jwt.audience").getString()
+        jwtRealm = environment.config.property("ktor.security.jwt.realm").getString()
 
         jwkProvider = JwkProviderBuilder(jwtIssuer)
             .cached(10, 24, TimeUnit.HOURS)
