@@ -14,6 +14,7 @@ import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.routing
 import io.ktor.server.util.*
+import java.util.UUID
 
 @Resource("/notes")
 class Notes() {
@@ -42,7 +43,7 @@ fun Application.configureNoteRoutes() {
         authenticate {
             get<Notes.Id> {noteId ->
                 val user: User = getUserFromPrincipal(call)
-                val note: Note? = noteDao.getById(user.id, noteId.id)
+                val note: Note? = noteDao.getById(user.id, UUID.fromString(noteId.id))
                 if (note == null)
                     call.respond(HttpStatusCode.NotFound)
                 else
@@ -77,7 +78,7 @@ fun Application.configureNoteRoutes() {
         authenticate {
             delete<Notes.Id> { noteId ->
                 val user: User = getUserFromPrincipal(call)
-                val result = noteDao.delete(user.id, noteId.id)
+                val result = noteDao.delete(user.id, UUID.fromString(noteId.id))
                 if (result > 0)
                     call.respond(HttpStatusCode.OK)
                 else

@@ -5,6 +5,7 @@ import com.onandor.models.Note
 import com.onandor.models.Notes
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import java.util.*
 
 class NoteDao : INoteDao {
 
@@ -23,7 +24,7 @@ class NoteDao : INoteDao {
             .map(::resultRowToNote)
     }
 
-    override suspend fun getById(userId: Int, noteId: String): Note? = dbQuery {
+    override suspend fun getById(userId: Int, noteId: UUID): Note? = dbQuery {
         Notes.select { Notes.id eq noteId and (Notes.userId eq userId) }
             .map(::resultRowToNote)
             .singleOrNull()
@@ -50,7 +51,7 @@ class NoteDao : INoteDao {
         }
     }
 
-    override suspend fun delete(userId: Int, noteId: String): Int = dbQuery {
+    override suspend fun delete(userId: Int, noteId: UUID): Int = dbQuery {
         Notes.deleteWhere { Notes.userId eq userId and (Notes.id eq noteId) }
     }
 }

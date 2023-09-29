@@ -3,9 +3,10 @@ package com.onandor.models
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.datetime
 import java.time.LocalDateTime
+import java.util.UUID
 
 data class Note(
-    val id: String,
+    val id: UUID,
     val title: String,
     val content: String,
     val labels: List<Label>,
@@ -15,7 +16,7 @@ data class Note(
 )
 
 object Notes: Table() {
-    val id = varchar("id", length = 36)
+    val id = uuid("id")
     val userId = integer("user_id")
     val title = varchar("title", length = 2048)
     val content = varchar("content", length = 65536)
