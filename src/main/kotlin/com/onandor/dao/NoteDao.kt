@@ -12,6 +12,7 @@ class NoteDao : INoteDao {
         row[Notes.id],
         row[Notes.title],
         row[Notes.content],
+        emptyList(),
         row[Notes.location],
         row[Notes.creationDate],
         row[Notes.modificationDate]

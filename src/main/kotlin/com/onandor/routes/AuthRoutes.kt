@@ -119,7 +119,6 @@ fun Application.configureAuthRoutes() {
                 return@post
             }
             else if (!oldRefreshToken.valid || oldRefreshToken.expiresAt < currentTime) {
-                println("Deleting refresh tokens")
                 refreshTokenDao.deleteAllByUser(oldRefreshToken.userId)
                 call.respond(HttpStatusCode.Unauthorized)
                 return@post
