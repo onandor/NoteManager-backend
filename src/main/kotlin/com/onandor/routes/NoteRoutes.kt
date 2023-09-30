@@ -1,6 +1,7 @@
 package com.onandor.routes
 
 import com.onandor.dao.noteDao
+import com.onandor.dao.noteService
 import com.onandor.dao.userDao
 import com.onandor.models.Note
 import com.onandor.models.User
@@ -34,7 +35,7 @@ fun Application.configureNoteRoutes() {
         authenticate {
             get<Notes> {
                 val user: User = getUserFromPrincipal(call)
-                val notes: List<Note> = noteDao.getAllByUser(user.id)
+                val notes: List<Note> = noteService.getAllByUser(user.id)
                 call.respond(HttpStatusCode.OK, notes)
             }
         }
@@ -43,7 +44,7 @@ fun Application.configureNoteRoutes() {
         authenticate {
             get<Notes.Id> {noteId ->
                 val user: User = getUserFromPrincipal(call)
-                val note: Note? = noteDao.getById(user.id, UUID.fromString(noteId.id))
+                val note: Note? = noteService.getById(user.id, UUID.fromString(noteId.id))
                 if (note == null)
                     call.respond(HttpStatusCode.NotFound)
                 else
@@ -56,7 +57,7 @@ fun Application.configureNoteRoutes() {
             post<Notes> {
                 val user: User = getUserFromPrincipal(call)
                 val note: Note = call.receive()
-                val noteId = noteDao.create(user.id, note)
+                val noteId = noteService.create(user.id, note)
                 call.respond(HttpStatusCode.Created, noteId)
             }
         }
@@ -66,7 +67,7 @@ fun Application.configureNoteRoutes() {
             put<Notes> {
                 val user: User = getUserFromPrincipal(call)
                 val note: Note = call.receive()
-                val result = noteDao.update(user.id, note)
+                val result = noteService.update(user.id, note)
                 if (result > 0)
                     call.respond(HttpStatusCode.OK)
                 else
@@ -78,7 +79,7 @@ fun Application.configureNoteRoutes() {
         authenticate {
             delete<Notes.Id> { noteId ->
                 val user: User = getUserFromPrincipal(call)
-                val result = noteDao.delete(user.id, UUID.fromString(noteId.id))
+                val result = noteService.delete(user.id, UUID.fromString(noteId.id))
                 if (result > 0)
                     call.respond(HttpStatusCode.OK)
                 else

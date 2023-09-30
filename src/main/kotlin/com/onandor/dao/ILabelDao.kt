@@ -9,11 +9,19 @@ interface ILabelDao {
 
     suspend fun getAllByUserAndNote(userId: Int, noteId: UUID): List<Label>
 
-    suspend fun create(label: Label): UUID
+    suspend fun createOrIgnore(label: Label): UUID
 
-    suspend fun createAndAddToNote(noteId: UUID, label: Label): UUID
+    suspend fun update(label: Label): Int
 
-    suspend fun deleteFromNote(noteId: UUID, labelId: UUID): Int
+    suspend fun updateAll(labels: List<Label>): Int
+
+    suspend fun createOrIgnoreAndAddToNote(noteId: UUID, label: Label): UUID
+
+    suspend fun addAllToNote(noteId: UUID, labels: List<Label>)
+
+    suspend fun removeFromNote(noteId: UUID, labelId: UUID): Int
+
+    suspend fun removeAllFromNote(noteId: UUID): Int
 
     suspend fun delete(labelId: UUID): Int
 }
