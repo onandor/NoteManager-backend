@@ -40,3 +40,9 @@ fun Application.configureSecurity() {
         }
     }
 }
+
+suspend fun getUserFromPrincipal(call: ApplicationCall): User {
+    val principal = call.principal<JWTPrincipal>()
+    val userId = principal!!.payload.getClaim("userId").asInt()
+    return userDao.getById(userId)!!
+}

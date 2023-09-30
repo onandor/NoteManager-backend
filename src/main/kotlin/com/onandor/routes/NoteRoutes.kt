@@ -1,9 +1,9 @@
 package com.onandor.routes
 
 import com.onandor.dao.noteService
-import com.onandor.dao.userDao
 import com.onandor.models.Note
 import com.onandor.models.User
+import com.onandor.plugins.getUserFromPrincipal
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.application.*
@@ -24,10 +24,9 @@ class Notes() {
 
 fun Application.configureNoteRoutes() {
     routing {
-        suspend fun getUserFromPrincipal(call: ApplicationCall): User {
-            val principal = call.principal<JWTPrincipal>()
-            val userId = principal!!.payload.getClaim("userId").asInt()
-            return userDao.getById(userId)!!
+        suspend fun checkIsUserOwner(userId: Int, noteId: UUID): Boolean {
+            return noteService.getAllByUser(userId)
+                .any { note -> note.id == noteId && note.userId == userId }
         }
 
         // Get all notes of a user
@@ -42,8 +41,14 @@ fun Application.configureNoteRoutes() {
         // Get a specific note of a user by note id
         authenticate {
             get<Notes.Id> {noteId ->
+                val noteIdUUID = UUID.fromString(noteId.id)
                 val user: User = getUserFromPrincipal(call)
-                val note: Note? = noteService.getById(user.id, UUID.fromString(noteId.id))
+                if (!checkIsUserOwner(user.id, noteIdUUID)) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@get
+                }
+
+                val note: Note? = noteService.getById(noteIdUUID)
                 if (note == null)
                     call.respond(HttpStatusCode.NotFound)
                 else
@@ -56,7 +61,11 @@ fun Application.configureNoteRoutes() {
             post<Notes> {
                 val user: User = getUserFromPrincipal(call)
                 val note: Note = call.receive()
-                val noteId = noteService.create(user.id, note)
+                // Make sure the user doesn't create a note for somebody else
+                val userNote = note.copy(
+                    userId = user.id
+                )
+                val noteId = noteService.create(userNote)
                 call.respond(HttpStatusCode.Created, noteId)
             }
         }
@@ -66,7 +75,12 @@ fun Application.configureNoteRoutes() {
             put<Notes> {
                 val user: User = getUserFromPrincipal(call)
                 val note: Note = call.receive()
-                val result = noteService.update(user.id, note)
+                if (!checkIsUserOwner(user.id, note.id)) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@put
+                }
+
+                val result = noteService.update(note)
                 if (result > 0)
                     call.respond(HttpStatusCode.OK)
                 else
@@ -77,8 +91,14 @@ fun Application.configureNoteRoutes() {
         // Delete note
         authenticate {
             delete<Notes.Id> { noteId ->
+                val noteIdUUID = UUID.fromString(noteId.id)
                 val user: User = getUserFromPrincipal(call)
-                val result = noteService.delete(user.id, UUID.fromString(noteId.id))
+                if (!checkIsUserOwner(user.id, noteIdUUID)) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@delete
+                }
+
+                val result = noteService.delete(noteIdUUID)
                 if (result > 0)
                     call.respond(HttpStatusCode.OK)
                 else

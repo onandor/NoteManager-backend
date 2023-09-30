@@ -1,9 +1,9 @@
 package com.onandor.routes
 
 import com.onandor.dao.labelDao
-import com.onandor.dao.userDao
 import com.onandor.models.Label
 import com.onandor.models.User
+import com.onandor.plugins.getUserFromPrincipal
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.application.*
@@ -23,12 +23,6 @@ class Labels() {
 
 fun Application.configureLabelRoutes() {
     routing {
-        suspend fun getUserFromPrincipal(call: ApplicationCall): User {
-            val principal = call.principal<JWTPrincipal>()
-            val userId = principal!!.payload.getClaim("userId").asInt()
-            return userDao.getById(userId)!!
-        }
-
         suspend fun checkIsUserOwner(userId: Int, labelId: UUID): Boolean {
             return labelDao.getAllByUser(userId)
                 .any { label -> label.id == labelId && label.userId == userId }
@@ -48,7 +42,7 @@ fun Application.configureLabelRoutes() {
             post<Labels> {
                 val user: User = getUserFromPrincipal(call)
                 val label: Label = call.receive()
-                // Make sure user doesn't create a label for somebody else
+                // Make sure the user doesn't create a label for somebody else
                 val userLabel = label.copy(
                     userId = user.id
                 )
@@ -79,13 +73,13 @@ fun Application.configureLabelRoutes() {
         authenticate {
             delete<Labels.Id> { labelId ->
                 val user: User = getUserFromPrincipal(call)
-                val labelIdUuid = UUID.fromString(labelId.id)
-                if (!checkIsUserOwner(user.id, labelIdUuid)) {
+                val labelIdUUID = UUID.fromString(labelId.id)
+                if (!checkIsUserOwner(user.id, labelIdUUID)) {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@delete
                 }
 
-                val result = labelDao.delete(labelIdUuid)
+                val result = labelDao.delete(labelIdUUID)
                 if (result > 0)
                     call.respond(HttpStatusCode.OK)
                 else

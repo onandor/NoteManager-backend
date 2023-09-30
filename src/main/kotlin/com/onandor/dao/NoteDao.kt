@@ -11,6 +11,7 @@ class NoteDao : INoteDao {
 
     private fun resultRowToNote(row: ResultRow) = Note(
         row[Notes.id],
+        row[Notes.userId],
         row[Notes.title],
         row[Notes.content],
         emptyList(),
@@ -24,16 +25,16 @@ class NoteDao : INoteDao {
             .map(::resultRowToNote)
     }
 
-    override suspend fun getById(userId: Int, noteId: UUID): Note? = dbQuery {
-        Notes.select { Notes.id eq noteId and (Notes.userId eq userId) }
+    override suspend fun getById(noteId: UUID): Note? = dbQuery {
+        Notes.select { Notes.id eq noteId }
             .map(::resultRowToNote)
             .singleOrNull()
     }
 
-    override suspend fun create(userId: Int, note: Note) = dbQuery {
+    override suspend fun create(note: Note) = dbQuery {
         Notes.insert {
             it[id] = note.id
-            it[Notes.userId] = userId
+            it[userId] = note.userId
             it[title] = note.title
             it[content] = note.content
             it[location] = note.location
@@ -42,8 +43,8 @@ class NoteDao : INoteDao {
         }[Notes.id]
     }
 
-    override suspend fun update(userId: Int, note: Note): Int = dbQuery {
-        Notes.update( { Notes.userId eq userId and (Notes.id eq note.id) } ) {
+    override suspend fun update(note: Note): Int = dbQuery {
+        Notes.update( { Notes.id eq note.id } ) {
             it[title] = note.title
             it[content] = note.content
             it[location] = note.location
@@ -51,8 +52,8 @@ class NoteDao : INoteDao {
         }
     }
 
-    override suspend fun delete(userId: Int, noteId: UUID): Int = dbQuery {
-        Notes.deleteWhere { Notes.userId eq userId and (Notes.id eq noteId) }
+    override suspend fun delete(noteId: UUID): Int = dbQuery {
+        Notes.deleteWhere { Notes.id eq noteId }
     }
 }
 

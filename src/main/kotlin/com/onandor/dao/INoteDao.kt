@@ -7,11 +7,11 @@ interface INoteDao {
 
     suspend fun getAllByUser(userId: Int): List<Note>
 
-    suspend fun getById(userId: Int, noteId: UUID): Note?
+    suspend fun getById(noteId: UUID): Note?
 
-    suspend fun create(userId: Int, note: Note): UUID
+    suspend fun create(note: Note): UUID
 
-    suspend fun update(userId: Int, note: Note): Int
+    suspend fun update(note: Note): Int
 
-    suspend fun delete(userId: Int, noteId: UUID): Int
+    suspend fun delete(noteId: UUID): Int
 }

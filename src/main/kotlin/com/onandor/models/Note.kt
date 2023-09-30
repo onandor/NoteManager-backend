@@ -7,6 +7,7 @@ import java.util.UUID
 
 data class Note(
     val id: UUID,
+    val userId: Int,
     val title: String,
     val content: String,
     val labels: List<Label>,

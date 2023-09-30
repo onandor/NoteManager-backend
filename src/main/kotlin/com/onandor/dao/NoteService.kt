@@ -9,21 +9,21 @@ class NoteService: INoteService {
             .map { note -> note.copy(labels = labelDao.getAllByUserAndNote(userId, note.id)) }
     }
 
-    override suspend fun getById(userId: Int, noteId: UUID): Note? {
-        val note: Note = noteDao.getById(userId, noteId) ?: return null
-        return note.copy(labels = labelDao.getAllByUserAndNote(userId, noteId))
+    override suspend fun getById(noteId: UUID): Note? {
+        val note: Note = noteDao.getById(noteId) ?: return null
+        return note.copy(labels = labelDao.getAllByUserAndNote(note.userId, noteId))
     }
 
-    override suspend fun create(userId: Int, note: Note): UUID {
-        val noteId = noteDao.create(userId, note)
+    override suspend fun create(note: Note): UUID {
+        val noteId = noteDao.create(note)
         note.labels.forEach { label ->
             labelDao.createOrIgnoreAndAddToNote(note.id, label)
         }
         return noteId
     }
 
-    override suspend fun update(userId: Int, note: Note): Int {
-        val result = noteDao.update(userId, note)
+    override suspend fun update(note: Note): Int {
+        val result = noteDao.update(note)
         if (result == 0)
             return result
 
@@ -31,9 +31,9 @@ class NoteService: INoteService {
         return result
     }
 
-    override suspend fun delete(userId: Int, noteId: UUID): Int {
+    override suspend fun delete(noteId: UUID): Int {
         var result: Int = 0
-        result += noteDao.delete(userId, noteId)
+        result += noteDao.delete(noteId)
         result += labelDao.removeAllFromNote(noteId)
         return result
     }

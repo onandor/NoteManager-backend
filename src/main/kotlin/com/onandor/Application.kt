@@ -3,6 +3,7 @@ package com.onandor
 import com.onandor.dao.DatabaseFactory
 import com.onandor.plugins.*
 import com.onandor.routes.configureAuthRoutes
+import com.onandor.routes.configureLabelRoutes
 import com.onandor.routes.configureNoteRoutes
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -21,4 +22,5 @@ fun Application.module() {
     install(Resources)
     configureAuthRoutes()
     configureNoteRoutes()
+    configureLabelRoutes()
 }
