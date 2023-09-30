@@ -33,6 +33,15 @@ class LabelDao: ILabelDao {
         join.selectAll().map(::resultRowToLabel)
     }
 
+    override suspend fun create(label: Label): UUID = dbQuery {
+        Labels.insert {
+            it[id] = label.id
+            it[userId] = label.userId
+            it[value] = label.value
+            it[color] = label.color
+        }[Labels.id]
+    }
+
     override suspend fun createOrIgnore(label: Label): UUID = dbQuery {
         Labels.insertIgnore {
             it[id] = label.id
@@ -40,6 +49,15 @@ class LabelDao: ILabelDao {
             it[value] = label.value
             it[color] = label.color
         }[Labels.id]
+    }
+
+    override suspend fun createOrIgnoreAndAddToNote(noteId: UUID, label: Label): UUID {
+        val labelId = createOrIgnore(label)
+        NoteLabels.insert {
+            it[NoteLabels.labelId] = labelId
+            it[NoteLabels.noteId] = noteId
+        }
+        return labelId
     }
 
     override suspend fun update(label: Label): Int = dbQuery {
@@ -56,15 +74,6 @@ class LabelDao: ILabelDao {
             this[Labels.value] = value
             this[Labels.color] = color
         }.count()
-    }
-
-    override suspend fun createOrIgnoreAndAddToNote(noteId: UUID, label: Label): UUID {
-        val labelId = createOrIgnore(label)
-        NoteLabels.insert {
-            it[NoteLabels.labelId] = labelId
-            it[NoteLabels.noteId] = noteId
-        }
-        return labelId
     }
 
     override suspend fun addAllToNote(noteId: UUID, labels: List<Label>) = dbQuery {
