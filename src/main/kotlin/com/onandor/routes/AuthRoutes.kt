@@ -106,7 +106,7 @@ fun Application.configureAuthRoutes() {
                 .hashToString(12, user.password.toCharArray())
 
             val userId = userDao.create(user.email, passwordHash)
-            call.respond(HttpStatusCode.Created, userId)
+            call.respond(HttpStatusCode.Created, hashMapOf("id" to userId))
         }
 
         post<Auth.Refresh> {

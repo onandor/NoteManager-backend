@@ -47,7 +47,7 @@ fun Application.configureLabelRoutes() {
                     userId = user.id
                 )
                 val labelId = labelDao.create(userLabel)
-                call.respond(HttpStatusCode.Created, labelId)
+                call.respond(HttpStatusCode.Created, hashMapOf("id" to labelId))
             }
         }
 

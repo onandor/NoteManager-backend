@@ -1,8 +1,6 @@
 package com.onandor.dao
 
-import com.onandor.models.Notes
-import com.onandor.models.RefreshTokens
-import com.onandor.models.Users
+import com.onandor.models.*
 import io.ktor.server.application.*
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
@@ -22,6 +20,8 @@ object DatabaseFactory {
             SchemaUtils.create(Notes)
             SchemaUtils.create(Users)
             SchemaUtils.create(RefreshTokens)
+            SchemaUtils.create(Labels)
+            SchemaUtils.create(NoteLabels)
         }
     }
 

@@ -42,17 +42,17 @@ fun Application.configureNoteRoutes() {
         authenticate {
             get<Notes.Id> {noteId ->
                 val noteIdUUID = UUID.fromString(noteId.id)
+                val note: Note? = noteService.getById(noteIdUUID)
+                if (note == null)
+                    call.respond(HttpStatusCode.NotFound)
+
                 val user: User = getUserFromPrincipal(call)
                 if (!checkIsUserOwner(user.id, noteIdUUID)) {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@get
                 }
 
-                val note: Note? = noteService.getById(noteIdUUID)
-                if (note == null)
-                    call.respond(HttpStatusCode.NotFound)
-                else
-                    call.respond(HttpStatusCode.OK, note)
+                call.respond(HttpStatusCode.OK, note!!)
             }
         }
 
@@ -66,7 +66,7 @@ fun Application.configureNoteRoutes() {
                     userId = user.id
                 )
                 val noteId = noteService.create(userNote)
-                call.respond(HttpStatusCode.Created, noteId)
+                call.respond(HttpStatusCode.Created, hashMapOf("id" to noteId))
             }
         }
 
