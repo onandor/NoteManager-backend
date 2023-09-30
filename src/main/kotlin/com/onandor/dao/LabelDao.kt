@@ -33,6 +33,10 @@ class LabelDao: ILabelDao {
         join.selectAll().map(::resultRowToLabel)
     }
 
+    override suspend fun getAllIdsByUserAndNote(userId: Int, noteId: UUID): List<UUID> = dbQuery {
+        getAllByUserAndNote(userId, noteId).map { label -> label.id }
+    }
+
     override suspend fun create(label: Label): UUID = dbQuery {
         Labels.insert {
             it[id] = label.id
@@ -76,11 +80,11 @@ class LabelDao: ILabelDao {
         }.count()
     }
 
-    override suspend fun addAllToNote(noteId: UUID, labels: List<Label>) = dbQuery {
-        labels.forEach { label ->
+    override suspend fun addAllToNote(noteId: UUID, labelIds: List<UUID>) = dbQuery {
+        labelIds.forEach { labelId ->
             NoteLabels.insertIgnore {
                 it[NoteLabels.noteId] = noteId
-                it[labelId] = label.id
+                it[NoteLabels.labelId] = labelId
             }
         }
     }

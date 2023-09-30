@@ -6,19 +6,17 @@ import java.util.*
 class NoteService: INoteService {
     override suspend fun getAllByUser(userId: Int): List<Note> {
         return noteDao.getAllByUser(userId)
-            .map { note -> note.copy(labels = labelDao.getAllByUserAndNote(userId, note.id)) }
+            .map { note -> note.copy(labels = labelDao.getAllIdsByUserAndNote(userId, note.id)) }
     }
 
     override suspend fun getById(noteId: UUID): Note? {
         val note: Note = noteDao.getById(noteId) ?: return null
-        return note.copy(labels = labelDao.getAllByUserAndNote(note.userId, noteId))
+        return note.copy(labels = labelDao.getAllIdsByUserAndNote(note.userId, noteId))
     }
 
     override suspend fun create(note: Note): UUID {
         val noteId = noteDao.create(note)
-        note.labels.forEach { label ->
-            labelDao.createOrIgnoreAndAddToNote(note.id, label)
-        }
+        labelDao.addAllToNote(note.id, note.labels)
         return noteId
     }
 
