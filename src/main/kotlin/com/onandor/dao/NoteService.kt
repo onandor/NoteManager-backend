@@ -16,7 +16,7 @@ class NoteService: INoteService {
 
     override suspend fun create(note: Note): UUID {
         val noteId = noteDao.create(note)
-        labelDao.addAllToNote(note.id, note.labels)
+        labelDao.addAllToNoteOrIgnore(note.id, note.labels)
         return noteId
     }
 
@@ -25,7 +25,8 @@ class NoteService: INoteService {
         if (result == 0)
             return result
 
-        labelDao.addAllToNote(note.id, note.labels)
+        labelDao.removeAllMissingFromNote(note.id, note.labels)
+        labelDao.addAllToNoteOrIgnore(note.id, note.labels)
         return result
     }
 

@@ -6,6 +6,7 @@ import com.onandor.models.Labels
 import com.onandor.models.NoteLabels
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.notInList
 import java.util.*
 
 class LabelDao: ILabelDao {
@@ -80,17 +81,26 @@ class LabelDao: ILabelDao {
         }.count()
     }
 
-    override suspend fun addAllToNote(noteId: UUID, labelIds: List<UUID>) = dbQuery {
-        labelIds.forEach { labelId ->
-            NoteLabels.insertIgnore {
-                it[NoteLabels.noteId] = noteId
-                it[NoteLabels.labelId] = labelId
-            }
+    override suspend fun addToNoteOrIgnore(noteId: UUID, labelId: UUID): Unit = dbQuery {
+        NoteLabels.insertIgnore {
+            it[NoteLabels.noteId] = noteId
+            it[NoteLabels.labelId] = labelId
         }
     }
 
-    override suspend fun removeFromNote(noteId: UUID, labelId: UUID): Int = dbQuery {
-        NoteLabels.deleteWhere { NoteLabels.noteId eq noteId and (NoteLabels.labelId eq labelId) }
+    override suspend fun addAllToNoteOrIgnore(noteId: UUID, labelIds: List<UUID>): Unit = dbQuery {
+        NoteLabels.batchInsert(
+            labelIds,
+            ignore = true,
+            shouldReturnGeneratedValues = false
+        ) { labelId ->
+            this[NoteLabels.noteId] = noteId
+            this[NoteLabels.labelId] = labelId
+        }
+    }
+
+    override suspend fun removeAllMissingFromNote(noteId: UUID, labelIds: List<UUID>): Int = dbQuery {
+        NoteLabels.deleteWhere { NoteLabels.noteId eq noteId and (NoteLabels.labelId notInList labelIds) }
     }
 
     override suspend fun removeAllFromNote(noteId: UUID): Int = dbQuery {
