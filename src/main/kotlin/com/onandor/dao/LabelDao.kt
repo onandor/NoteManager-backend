@@ -14,7 +14,7 @@ class LabelDao: ILabelDao {
     private fun resultRowToLabel(row: ResultRow) = Label(
         row[Labels.id],
         row[Labels.userId],
-        row[Labels.value],
+        row[Labels.title],
         row[Labels.color]
     )
 
@@ -42,7 +42,7 @@ class LabelDao: ILabelDao {
         Labels.insert {
             it[id] = label.id
             it[userId] = label.userId
-            it[value] = label.value
+            it[title] = label.title
             it[color] = label.color
         }[Labels.id]
     }
@@ -51,7 +51,7 @@ class LabelDao: ILabelDao {
         Labels.insertIgnore {
             it[id] = label.id
             it[userId] = label.userId
-            it[value] = label.value
+            it[title] = label.title
             it[color] = label.color
         }[Labels.id]
     }
@@ -67,7 +67,7 @@ class LabelDao: ILabelDao {
 
     override suspend fun update(label: Label): Int = dbQuery {
         Labels.update( { Labels.id eq label.id } ) {
-            it[value] = label.value
+            it[title] = label.title
             it[color] = label.color
         }
     }
@@ -76,7 +76,7 @@ class LabelDao: ILabelDao {
         Labels.batchReplace(labels, shouldReturnGeneratedValues = true) {(id, userId, value, color) ->
             this[Labels.id] = id
             this[Labels.userId] = userId
-            this[Labels.value] = value
+            this[Labels.title] = value
             this[Labels.color] = color
         }.count()
     }
