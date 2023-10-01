@@ -39,10 +39,12 @@ class Auth() {
 }
 
 fun Application.configureAuthRoutes() {
-    val jwkProvider: JwkProvider = JwkProviderFactory.getJwkProvider()
-    val privateKeyString = JwkProviderFactory.getJwtPrivateKey()
-    val jwtAudience = JwkProviderFactory.getJwtAudience()
-    val jwtIssuer = JwkProviderFactory.getJwtIssuer()
+    val jwkProvider: JwkProvider = JwkProviderFactory.jwkProvider!!
+    val privateKeyString = JwkProviderFactory.jwtPrivateKey
+    val jwtAudience = JwkProviderFactory.jwtAudience
+    val jwtIssuer = JwkProviderFactory.jwtIssuer
+    val accessTokenExpiration = JwkProviderFactory.accessTokenExpiration
+    val refreshTokenExpiration = JwkProviderFactory.refreshTokenExpiration
 
     fun createAccessToken(user: User): String {
         val currentTime = System.currentTimeMillis()
@@ -53,7 +55,7 @@ fun Application.configureAuthRoutes() {
             .withAudience(jwtAudience)
             .withIssuer(jwtIssuer)
             .withClaim("userId", user.id)
-            .withExpiresAt(Date(currentTime + Duration.ofMinutes(20).toMillis()))
+            .withExpiresAt(Date(currentTime + Duration.ofMinutes(accessTokenExpiration).toMillis()))
             .sign(Algorithm.RSA256(publicKey as RSAPublicKey, privateKey as RSAPrivateKey))
     }
 
@@ -63,7 +65,7 @@ fun Application.configureAuthRoutes() {
         val refreshToken = RefreshToken(
             userId = user.id,
             value = refreshTokenValue,
-            expiresAt = Date(currentTime + Duration.ofDays(14).toMillis()).time,
+            expiresAt = Date(currentTime + Duration.ofDays(refreshTokenExpiration).toMillis()).time,
             valid = true
         )
         refreshTokenDao.create(refreshToken)

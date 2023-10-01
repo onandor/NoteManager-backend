@@ -10,16 +10,16 @@ import io.ktor.server.response.*
 
 fun Application.configureSecurity() {
     JwkProviderFactory.init(environment)
-    val jwkProvider = JwkProviderFactory.getJwkProvider()
-    val jwtRealm = JwkProviderFactory.getJwtRealm()
-    val jwtIssuer = JwkProviderFactory.getJwtIssuer()
-    val jwtAudience = JwkProviderFactory.getJwtAudience()
+    val jwkProvider = JwkProviderFactory.jwkProvider
+    val jwtRealm = JwkProviderFactory.jwtRealm
+    val jwtIssuer = JwkProviderFactory.jwtIssuer
+    val jwtAudience = JwkProviderFactory.jwtAudience
 
     authentication {
         jwt {
             realm = jwtRealm
             verifier(
-                jwkProvider = jwkProvider,
+                jwkProvider = jwkProvider!!,
                 issuer = jwtIssuer
             ) {
                 acceptLeeway(3)
