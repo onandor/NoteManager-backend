@@ -34,8 +34,12 @@ fun Application.configureSecurity() {
                     null
                 }
             }
-            challenge { defaultScheme, realm ->  
-                call.respond(HttpStatusCode.Unauthorized, "Token is not valid or has expired.")
+            challenge { _, _ ->
+                val authHeader = call.request.headers["Authorization"]
+                if (authHeader.isNullOrEmpty()) {
+                    call.respond(HttpStatusCode.BadRequest, "Authorization header can not be blank.")
+                }
+                call.respond(HttpStatusCode.Unauthorized, "Access token is not valid or has expired.")
             }
         }
     }
