@@ -1,11 +1,13 @@
 package com.onandor.models
 
 import org.jetbrains.exposed.sql.Table
+import java.util.*
 
 data class User(
     val id: Int,
     val email: String,
-    val password: String
+    val password: String,
+    val deviceId: UUID?
 )
 
 object Users: Table() {

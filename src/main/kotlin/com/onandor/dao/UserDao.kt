@@ -11,7 +11,8 @@ class UserDao : IUserDao {
     private fun resultRowToUser(row: ResultRow) = User(
         row[Users.id],
         row[Users.email],
-        row[Users.passwordHash]
+        row[Users.passwordHash],
+        null
     )
 
     override suspend fun create(email: String, passwordHash: String): Int = dbQuery {

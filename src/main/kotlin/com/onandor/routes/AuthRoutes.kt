@@ -59,17 +59,18 @@ fun Application.configureAuthRoutes() {
             .sign(Algorithm.RSA256(publicKey as RSAPublicKey, privateKey as RSAPrivateKey))
     }
 
-    suspend fun createRefreshToken(user: User): String {
-        val refreshTokenValue = UUID.randomUUID().toString()
+    suspend fun createRefreshToken(user: User, deviceId: UUID): String {
+        val refreshTokenValue = UUID.randomUUID()
         val currentTime = System.currentTimeMillis()
         val refreshToken = RefreshToken(
             userId = user.id,
-            value = refreshTokenValue,
+            deviceId = deviceId,
+            tokenValue = refreshTokenValue,
             expiresAt = Date(currentTime + Duration.ofDays(refreshTokenExpiration).toMillis()).time,
             valid = true
         )
         refreshTokenDao.create(refreshToken)
-        return refreshTokenValue
+        return refreshTokenValue.toString()
     }
 
     routing {
@@ -77,6 +78,10 @@ fun Application.configureAuthRoutes() {
 
         post<Auth.Login> {
             val authUser: User = call.receive()
+            if (authUser.deviceId == null) {
+                call.respond(HttpStatusCode.BadRequest, "Device ID can not be blank.")
+            }
+
             val dbUser: User? = userDao.getByEmail(authUser.email)
             if (dbUser == null) {
                 call.respond(HttpStatusCode.NotFound)
@@ -89,9 +94,9 @@ fun Application.configureAuthRoutes() {
                 return@post
             }
 
-            refreshTokenDao.deleteAllByUser(dbUser.id)
+            refreshTokenDao.deleteAllByUserDevice(dbUser.id, authUser.deviceId!!)
             val accessToken: String = createAccessToken(dbUser)
-            val refreshToken: String = createRefreshToken(dbUser)
+            val refreshToken: String = createRefreshToken(dbUser, authUser.deviceId)
             call.respond(HttpStatusCode.OK, hashMapOf("access_token" to accessToken, "refresh_token" to refreshToken))
         }
 
@@ -112,8 +117,8 @@ fun Application.configureAuthRoutes() {
         }
 
         post<Auth.Refresh> {
-            val oldRefreshTokenValue: String = call.receive()
-            val oldRefreshToken: RefreshToken? = refreshTokenDao.getByValue(oldRefreshTokenValue)
+            val oldRefreshTokenValue: UUID = UUID.fromString(call.receive())
+            val oldRefreshToken: RefreshToken? = refreshTokenDao.getByTokenValue(oldRefreshTokenValue)
             val currentTime = System.currentTimeMillis()
 
             if (oldRefreshToken == null) {
@@ -121,7 +126,7 @@ fun Application.configureAuthRoutes() {
                 return@post
             }
             else if (!oldRefreshToken.valid || oldRefreshToken.expiresAt < currentTime) {
-                refreshTokenDao.deleteAllByUser(oldRefreshToken.userId)
+                refreshTokenDao.deleteAllByUserDevice(oldRefreshToken.userId, oldRefreshToken.deviceId)
                 call.respond(HttpStatusCode.Unauthorized)
                 return@post
             }
@@ -135,7 +140,7 @@ fun Application.configureAuthRoutes() {
 
             refreshTokenDao.invalidate(oldRefreshToken)
             val accessToken = createAccessToken(user)
-            val newRefreshToken: String = createRefreshToken(user)
+            val newRefreshToken: String = createRefreshToken(user, oldRefreshToken.deviceId)
             call.respond(HttpStatusCode.OK, hashMapOf("access_token" to accessToken, "refresh_token" to newRefreshToken))
         }
 
