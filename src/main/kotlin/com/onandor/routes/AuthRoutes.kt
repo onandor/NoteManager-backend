@@ -117,7 +117,11 @@ fun Application.configureAuthRoutes() {
         }
 
         post<Auth.Refresh> {
-            val oldRefreshTokenValue: UUID = UUID.fromString(call.receive())
+            val refreshTokenString = call.parameters["refreshToken"]
+            if (refreshTokenString.isNullOrEmpty()) {
+                call.respond(HttpStatusCode.BadRequest, "Refresh token can not be blank.")
+            }
+            val oldRefreshTokenValue: UUID = UUID.fromString(refreshTokenString)
             val oldRefreshToken: RefreshToken? = refreshTokenDao.getByTokenValue(oldRefreshTokenValue)
             val currentTime = System.currentTimeMillis()
 
