@@ -17,6 +17,7 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.resources.*
+import io.ktor.server.resources.post
 import io.ktor.server.response.*
 import io.ktor.server.routing.routing
 import java.security.KeyFactory
@@ -97,7 +98,11 @@ fun Application.configureAuthRoutes() {
             refreshTokenDao.deleteAllByUserDevice(dbUser.id, authUser.deviceId!!)
             val accessToken: String = createAccessToken(dbUser)
             val refreshToken: String = createRefreshToken(dbUser, authUser.deviceId)
-            call.respond(HttpStatusCode.OK, hashMapOf("access_token" to accessToken, "refresh_token" to refreshToken))
+            call.respond(HttpStatusCode.OK, hashMapOf(
+                "userId" to dbUser.id,
+                "accessToken" to accessToken,
+                "refreshToken" to refreshToken)
+            )
         }
 
         post<Auth.Register> {
@@ -116,7 +121,7 @@ fun Application.configureAuthRoutes() {
             call.respond(HttpStatusCode.Created, hashMapOf("id" to userId, "email" to user.email))
         }
 
-        post<Auth.Refresh> {
+        get<Auth.Refresh> {
             val refreshTokenString = call.parameters["refreshToken"]
             if (refreshTokenString.isNullOrEmpty()) {
                 call.respond(HttpStatusCode.BadRequest, "Refresh token can not be blank.")
@@ -127,25 +132,25 @@ fun Application.configureAuthRoutes() {
 
             if (oldRefreshToken == null) {
                 call.respond(HttpStatusCode.NotFound)
-                return@post
+                return@get
             }
             else if (!oldRefreshToken.valid || oldRefreshToken.expiresAt < currentTime) {
                 refreshTokenDao.deleteAllByUserDevice(oldRefreshToken.userId, oldRefreshToken.deviceId)
                 call.respond(HttpStatusCode.Unauthorized)
-                return@post
+                return@get
             }
 
             val user: User? = userDao.getById(oldRefreshToken.userId)
             if (user == null) {
                 refreshTokenDao.deleteAllByUser(oldRefreshToken.userId)
                 call.respond(HttpStatusCode.NotFound)
-                return@post
+                return@get
             }
 
             refreshTokenDao.invalidate(oldRefreshToken)
             val accessToken = createAccessToken(user)
             val newRefreshToken: String = createRefreshToken(user, oldRefreshToken.deviceId)
-            call.respond(HttpStatusCode.OK, hashMapOf("access_token" to accessToken, "refresh_token" to newRefreshToken))
+            call.respond(HttpStatusCode.OK, hashMapOf("accessToken" to accessToken, "refreshToken" to newRefreshToken))
         }
 
         authenticate {
@@ -165,12 +170,6 @@ fun Application.configureAuthRoutes() {
         get<Auth> {
             val users = userDao.getAll()
             call.respond(HttpStatusCode.OK, users)
-        }
-
-        // TODO: for testing only
-        get<Auth.Refresh> {
-            val refreshTokens = refreshTokenDao.getAll()
-            call.respond(HttpStatusCode.OK, refreshTokens)
         }
     }
 }
