@@ -56,16 +56,16 @@ fun Application.configureLabelRoutes() {
             put<Labels> {
                 val user: User = getUserFromPrincipal(call)
                 val label: Label = call.receive()
+                if (labelDao.getById(label.id) == null) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@put
+                }
                 if (!checkIsUserOwner(user.id, label.id)) {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@put
                 }
-
-                val result = labelDao.update(label)
-                if (result > 0)
-                    call.respond(HttpStatusCode.OK)
-                else
-                    call.respond(HttpStatusCode.NotFound)
+                labelDao.update(label)
+                call.respond(HttpStatusCode.OK)
             }
         }
 
@@ -73,17 +73,24 @@ fun Application.configureLabelRoutes() {
         authenticate {
             delete<Labels.Id> { labelId ->
                 val user: User = getUserFromPrincipal(call)
-                val labelIdUUID = UUID.fromString(labelId.id)
+                val labelIdUUID: UUID
+                try {
+                    labelIdUUID = UUID.fromString(labelId.id)
+                } catch (e: java.lang.IllegalArgumentException) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@delete
+                }
+
+                if (labelDao.getById(labelIdUUID) == null) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@delete
+                }
                 if (!checkIsUserOwner(user.id, labelIdUUID)) {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@delete
                 }
-
-                val result = labelDao.delete(labelIdUUID)
-                if (result > 0)
-                    call.respond(HttpStatusCode.OK)
-                else
-                    call.respond(HttpStatusCode.NotFound)
+                labelDao.delete(labelIdUUID)
+                call.respond(HttpStatusCode.OK)
             }
         }
     }

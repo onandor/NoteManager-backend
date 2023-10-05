@@ -5,6 +5,8 @@ import java.util.*
 
 interface ILabelDao {
 
+    suspend fun getById(labelId: UUID): Label?
+
     suspend fun getAllByUser(userId: Int): List<Label>
 
     suspend fun getAllByUserAndNote(userId: Int, noteId: UUID): List<Label>

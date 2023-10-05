@@ -18,6 +18,12 @@ class LabelDao: ILabelDao {
         row[Labels.color]
     )
 
+    override suspend fun getById(labelId: UUID): Label? = dbQuery {
+        Labels.select { Labels.id eq labelId }
+            .map(::resultRowToLabel)
+            .singleOrNull()
+    }
+
     override suspend fun getAllByUser(userId: Int): List<Label> = dbQuery {
         Labels.select { Labels.userId eq userId }
             .map(::resultRowToLabel)
