@@ -41,6 +41,12 @@ class UserDao : IUserDao {
     override suspend fun delete(userId: Int): Int = dbQuery {
         Users.deleteWhere { Users.id eq userId }
     }
+
+    override suspend fun updatePassword(userId: Int, passwordHash: String): Unit = dbQuery {
+        Users.update({ Users.id eq userId }) {
+            it[Users.passwordHash] = passwordHash
+        }
+    }
 }
 
 val userDao: IUserDao = UserDao()

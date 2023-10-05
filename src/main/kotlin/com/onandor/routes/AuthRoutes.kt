@@ -6,9 +6,11 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.onandor.dao.refreshTokenDao
 import com.onandor.dao.userDao
+import com.onandor.models.PasswordPair
 import com.onandor.models.RefreshToken
 import com.onandor.models.User
 import com.onandor.plugins.JwkProviderFactory
+import com.onandor.plugins.getUserFromPrincipal
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.application.*
@@ -37,6 +39,12 @@ class Auth() {
 
     @Resource("refresh")
     class Refresh(val parent: Auth = Auth())
+
+    @Resource("logout")
+    class Logout(val parent: Auth = Auth())
+
+    @Resource("changePassword")
+    class ChangePassword(val parent: Auth = Auth())
 }
 
 fun Application.configureAuthRoutes() {
@@ -160,10 +168,51 @@ fun Application.configureAuthRoutes() {
         }
 
         authenticate {
+            post<Auth.Logout> {
+                val authUser: User = call.receive()
+                if (authUser.deviceId == null) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@post
+                }
+                val dbUser = getUserFromPrincipal(call)
+                refreshTokenDao.deleteAllByUserDevice(dbUser.id, authUser.deviceId)
+                call.respond(HttpStatusCode.OK)
+            }
+        }
+
+        authenticate {
+            post<Auth.ChangePassword> {
+                val passwordPair: PasswordPair = call.receive()
+                if (passwordPair.oldPassword.isEmpty() || passwordPair.newPassword.isEmpty()) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@post
+                }
+                else if (passwordPair.oldPassword == passwordPair.newPassword) {
+                    call.respond(HttpStatusCode.Conflict)
+                    return@post
+                }
+
+                val user = getUserFromPrincipal(call)
+                val hashResult = BCrypt.verifyer().verify(passwordPair.oldPassword.toCharArray(), user.password)
+                if (!hashResult.verified) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@post
+                }
+
+                val newPasswordHash: String = BCrypt
+                    .withDefaults()
+                    .hashToString(12, passwordPair.newPassword.toCharArray())
+                userDao.updatePassword(user.id, newPasswordHash)
+                call.respond(HttpStatusCode.OK)
+            }
+        }
+
+        authenticate {
             delete<Auth> {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal!!.payload.getClaim("userId").asInt()
 
+                // TODO: delete all notes and labels associated with user
                 val result = userDao.delete(userId)
                 if (result > 0)
                     call.respond(HttpStatusCode.OK)

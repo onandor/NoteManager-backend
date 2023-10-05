@@ -16,4 +16,6 @@ interface IUserDao {
     suspend fun getAll(): List<User>
 
     suspend fun delete(userId: Int): Int
+
+    suspend fun updatePassword(userId: Int, passwordHash: String)
 }
