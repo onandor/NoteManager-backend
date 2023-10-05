@@ -41,17 +41,24 @@ fun Application.configureNoteRoutes() {
         // Get a specific note of a user by note id
         authenticate {
             get<Notes.Id> {noteId ->
-                val noteIdUUID = UUID.fromString(noteId.id)
+                val noteIdUUID: UUID
+                try {
+                    noteIdUUID = UUID.fromString(noteId.id)
+                } catch (e: java.lang.IllegalArgumentException) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@get
+                }
                 val note: Note? = noteService.getById(noteIdUUID)
-                if (note == null)
+                if (note == null) {
                     call.respond(HttpStatusCode.NotFound)
+                    return@get
+                }
 
                 val user: User = getUserFromPrincipal(call)
                 if (!checkIsUserOwner(user.id, noteIdUUID)) {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@get
                 }
-
                 call.respond(HttpStatusCode.OK, note!!)
             }
         }
@@ -73,36 +80,44 @@ fun Application.configureNoteRoutes() {
         // Update existing note
         authenticate {
             put<Notes> {
-                val user: User = getUserFromPrincipal(call)
                 val note: Note = call.receive()
+                if (noteService.getById(note.id) == null) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@put
+                }
+
+                val user: User = getUserFromPrincipal(call)
                 if (!checkIsUserOwner(user.id, note.id)) {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@put
                 }
-
-                val result = noteService.update(note)
-                if (result > 0)
-                    call.respond(HttpStatusCode.OK)
-                else
-                    call.respond(HttpStatusCode.NotFound)
+                noteService.update(note)
+                call.respond(HttpStatusCode.OK)
             }
         }
 
         // Delete note
         authenticate {
             delete<Notes.Id> { noteId ->
-                val noteIdUUID = UUID.fromString(noteId.id)
+                val noteIdUUID: UUID
+                try {
+                    noteIdUUID = UUID.fromString(noteId.id)
+                } catch (e: java.lang.IllegalArgumentException) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@delete
+                }
+                if (noteService.getById(noteIdUUID) == null) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@delete
+                }
+
                 val user: User = getUserFromPrincipal(call)
                 if (!checkIsUserOwner(user.id, noteIdUUID)) {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@delete
                 }
-
-                val result = noteService.delete(noteIdUUID)
-                if (result > 0)
-                    call.respond(HttpStatusCode.OK)
-                else
-                    call.respond(HttpStatusCode.NotFound)
+                noteService.delete(noteIdUUID)
+                call.respond(HttpStatusCode.OK)
             }
         }
     }
