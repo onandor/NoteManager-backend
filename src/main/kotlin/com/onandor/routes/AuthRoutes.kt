@@ -78,11 +78,12 @@ fun Application.configureAuthRoutes() {
         staticResources("/.well-known", "well-known")
 
         post<Auth.Login> {
+            val emailRegex = "^[A-Za-z\\d+_.-]+@[A-Za-z\\d.-]+\$".toRegex()
             val authUser: User = call.receive()
-            if (authUser.deviceId == null) {
-                call.respond(HttpStatusCode.BadRequest, "Device ID can not be blank.")
+            if (authUser.deviceId == null || authUser.email.isEmpty() || !authUser.email.matches(emailRegex) || authUser.password.isEmpty()) {
+                call.respond(HttpStatusCode.BadRequest)
+                return@post
             }
-
             val dbUser: User? = userDao.getByEmail(authUser.email)
             if (dbUser == null) {
                 call.respond(HttpStatusCode.NotFound)
@@ -106,7 +107,12 @@ fun Application.configureAuthRoutes() {
         }
 
         post<Auth.Register> {
+            val emailRegex = "^[A-Za-z\\d+_.-]+@[A-Za-z\\d.-]+\$".toRegex()
             val user: User = call.receive()
+            if (user.email.isEmpty() || !user.email.matches(emailRegex) || user.password.isEmpty()) {
+                call.respond(HttpStatusCode.BadRequest)
+                return@post
+            }
             val existingUser: User? = userDao.getByEmail(user.email)
             if (existingUser != null) {
                 call.respond(HttpStatusCode.Conflict)
