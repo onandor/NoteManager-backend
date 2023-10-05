@@ -14,4 +14,6 @@ interface INoteDao {
     suspend fun update(note: Note): Int
 
     suspend fun delete(noteId: UUID): Int
+
+    suspend fun deleteAllByUser(userId: Int): Int
 }

@@ -36,6 +36,16 @@ class NoteService: INoteService {
         result += labelDao.removeAllFromNote(noteId)
         return result
     }
+
+    override suspend fun deleteAllByUser(userId: Int) {
+        noteDao.getAllByUser(userId).forEach { note ->
+            labelDao.removeAllFromNote(note.id)
+        }
+        noteDao.deleteAllByUser(userId)
+        labelDao.getAllByUser(userId).forEach { label ->
+            labelDao.delete(label.id)
+        }
+    }
 }
 
 val noteService: INoteService = NoteService()

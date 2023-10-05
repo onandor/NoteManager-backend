@@ -55,6 +55,10 @@ class NoteDao : INoteDao {
     override suspend fun delete(noteId: UUID): Int = dbQuery {
         Notes.deleteWhere { Notes.id eq noteId }
     }
+
+    override suspend fun deleteAllByUser(userId: Int): Int = dbQuery {
+        Notes.deleteWhere { Notes.userId eq userId }
+    }
 }
 
 val noteDao: INoteDao = NoteDao()

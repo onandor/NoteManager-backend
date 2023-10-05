@@ -4,6 +4,7 @@ import at.favre.lib.crypto.bcrypt.BCrypt
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.onandor.dao.noteService
 import com.onandor.dao.refreshTokenDao
 import com.onandor.dao.userDao
 import com.onandor.models.PasswordPair
@@ -30,7 +31,7 @@ import java.time.Duration
 import java.util.*
 
 @Resource("/auth")
-class Auth() {
+class Auth {
     @Resource("login")
     class Login(val parent: Auth = Auth())
 
@@ -45,6 +46,9 @@ class Auth() {
 
     @Resource("changePassword")
     class ChangePassword(val parent: Auth = Auth())
+
+    @Resource("delete")
+    class Delete(val parent: Auth = Auth())
 }
 
 fun Application.configureAuthRoutes() {
@@ -104,7 +108,7 @@ fun Application.configureAuthRoutes() {
                 return@post
             }
 
-            refreshTokenDao.deleteAllByUserDevice(dbUser.id, authUser.deviceId!!)
+            refreshTokenDao.deleteAllByUserDevice(dbUser.id, authUser.deviceId)
             val accessToken: String = createAccessToken(dbUser)
             val refreshToken: String = createRefreshToken(dbUser, authUser.deviceId)
             call.respond(HttpStatusCode.OK, hashMapOf(
@@ -208,16 +212,22 @@ fun Application.configureAuthRoutes() {
         }
 
         authenticate {
-            delete<Auth> {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal!!.payload.getClaim("userId").asInt()
+            post<Auth.Delete> {
+                val password = call.receiveText()
+                if (password.isEmpty()) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@post
+                }
+                val user = getUserFromPrincipal(call)
+                val hashResult = BCrypt.verifyer().verify(password.toCharArray(), user.password)
+                if (!hashResult.verified) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@post
+                }
 
-                // TODO: delete all notes and labels associated with user
-                val result = userDao.delete(userId)
-                if (result > 0)
-                    call.respond(HttpStatusCode.OK)
-                else
-                    call.respond(HttpStatusCode.NotFound)
+                noteService.deleteAllByUser(user.id)
+                userDao.delete(user.id)
+                call.respond(HttpStatusCode.OK)
             }
         }
 
