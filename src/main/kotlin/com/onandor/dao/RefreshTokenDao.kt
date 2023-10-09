@@ -43,7 +43,7 @@ class RefreshTokenDao: IRefreshTokenDao {
         }
     }
 
-    override suspend fun deleteAllByUser(userId: Int) {
+    override suspend fun deleteAllByUser(userId: Int): Unit = dbQuery {
         RefreshTokens.deleteWhere { RefreshTokens.userId eq userId }
     }
 

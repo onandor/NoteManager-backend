@@ -207,7 +207,10 @@ fun Application.configureAuthRoutes() {
                     .withDefaults()
                     .hashToString(12, passwordPair.newPassword.toCharArray())
                 userDao.updatePassword(user.id, newPasswordHash)
-                call.respond(HttpStatusCode.OK)
+                refreshTokenDao.deleteAllByUser(user.id)
+
+                val refreshToken = createRefreshToken(user, passwordPair.deviceId)
+                call.respond(HttpStatusCode.OK, hashMapOf("refreshToken" to refreshToken))
             }
         }
 
@@ -226,6 +229,7 @@ fun Application.configureAuthRoutes() {
                 }
 
                 noteService.deleteAllByUser(user.id)
+                refreshTokenDao.deleteAllByUser(user.id)
                 userDao.delete(user.id)
                 call.respond(HttpStatusCode.OK)
             }
