@@ -210,7 +210,7 @@ fun Application.configureAuthRoutes() {
                 refreshTokenDao.deleteAllByUser(user.id)
 
                 val refreshToken = createRefreshToken(user, passwordPair.deviceId)
-                call.respond(HttpStatusCode.OK, refreshToken)
+                call.respond(HttpStatusCode.OK, hashMapOf("refreshToken" to refreshToken))
             }
         }
 
