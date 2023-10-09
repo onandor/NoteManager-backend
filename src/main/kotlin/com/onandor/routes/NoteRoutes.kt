@@ -1,6 +1,6 @@
 package com.onandor.routes
 
-import com.onandor.dao.noteService
+import com.onandor.dao.noteRepository
 import com.onandor.models.Note
 import com.onandor.models.User
 import com.onandor.plugins.getUserFromPrincipal
@@ -25,7 +25,7 @@ class Notes() {
 fun Application.configureNoteRoutes() {
     routing {
         suspend fun checkIsUserOwner(userId: Int, noteId: UUID): Boolean {
-            return noteService.getAllByUser(userId)
+            return noteRepository.getAllByUser(userId)
                 .any { note -> note.id == noteId && note.userId == userId }
         }
 
@@ -33,7 +33,7 @@ fun Application.configureNoteRoutes() {
         authenticate {
             get<Notes> {
                 val user: User = getUserFromPrincipal(call)
-                val notes: List<Note> = noteService.getAllByUser(user.id)
+                val notes: List<Note> = noteRepository.getAllByUser(user.id)
                 call.respond(HttpStatusCode.OK, notes)
             }
         }
@@ -48,7 +48,7 @@ fun Application.configureNoteRoutes() {
                     call.respond(HttpStatusCode.BadRequest)
                     return@get
                 }
-                val note: Note? = noteService.getById(noteIdUUID)
+                val note: Note? = noteRepository.getById(noteIdUUID)
                 if (note == null) {
                     call.respond(HttpStatusCode.NotFound)
                     return@get
@@ -72,7 +72,7 @@ fun Application.configureNoteRoutes() {
                 val userNote = note.copy(
                     userId = user.id
                 )
-                val noteId = noteService.create(userNote)
+                val noteId = noteRepository.create(userNote)
                 call.respond(HttpStatusCode.Created, hashMapOf("id" to noteId))
             }
         }
@@ -81,7 +81,7 @@ fun Application.configureNoteRoutes() {
         authenticate {
             put<Notes> {
                 val note: Note = call.receive()
-                if (noteService.getById(note.id) == null) {
+                if (noteRepository.getById(note.id) == null) {
                     call.respond(HttpStatusCode.NotFound)
                     return@put
                 }
@@ -91,7 +91,7 @@ fun Application.configureNoteRoutes() {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@put
                 }
-                noteService.update(note)
+                noteRepository.update(note)
                 call.respond(HttpStatusCode.OK)
             }
         }
@@ -106,7 +106,7 @@ fun Application.configureNoteRoutes() {
                     call.respond(HttpStatusCode.BadRequest)
                     return@delete
                 }
-                if (noteService.getById(noteIdUUID) == null) {
+                if (noteRepository.getById(noteIdUUID) == null) {
                     call.respond(HttpStatusCode.NotFound)
                     return@delete
                 }
@@ -116,7 +116,7 @@ fun Application.configureNoteRoutes() {
                     call.respond(HttpStatusCode.Unauthorized)
                     return@delete
                 }
-                noteService.delete(noteIdUUID)
+                noteRepository.delete(noteIdUUID)
                 call.respond(HttpStatusCode.OK)
             }
         }

@@ -3,7 +3,7 @@ package com.onandor.dao
 import com.onandor.models.Note
 import java.util.UUID
 
-interface INoteService {
+interface INoteRepository {
 
     suspend fun getAllByUser(userId: Int): List<Note>
 

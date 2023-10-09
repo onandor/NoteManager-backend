@@ -3,7 +3,7 @@ package com.onandor.dao
 import com.onandor.models.Note
 import java.util.*
 
-class NoteService: INoteService {
+class NoteRepository: INoteRepository {
     override suspend fun getAllByUser(userId: Int): List<Note> {
         return noteDao.getAllByUser(userId)
             .map { note -> note.copy(labels = labelDao.getAllIdsByUserAndNote(userId, note.id)) }
@@ -48,4 +48,4 @@ class NoteService: INoteService {
     }
 }
 
-val noteService: INoteService = NoteService()
+val noteRepository: INoteRepository = NoteRepository()

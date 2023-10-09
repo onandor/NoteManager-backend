@@ -4,7 +4,7 @@ import at.favre.lib.crypto.bcrypt.BCrypt
 import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.onandor.dao.noteService
+import com.onandor.dao.noteRepository
 import com.onandor.dao.refreshTokenDao
 import com.onandor.dao.userDao
 import com.onandor.models.PasswordPair
@@ -228,7 +228,7 @@ fun Application.configureAuthRoutes() {
                     return@post
                 }
 
-                noteService.deleteAllByUser(user.id)
+                noteRepository.deleteAllByUser(user.id)
                 refreshTokenDao.deleteAllByUser(user.id)
                 userDao.delete(user.id)
                 call.respond(HttpStatusCode.OK)
