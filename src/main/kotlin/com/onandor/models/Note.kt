@@ -2,6 +2,8 @@ package com.onandor.models
 
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.datetime
+import org.jetbrains.exposed.sql.javatime.timestamp
+import java.time.Instant
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -12,8 +14,8 @@ data class Note(
     val content: String,
     val labels: List<Label>,
     val location: Int,
-    val creationDate: LocalDateTime,
-    val modificationDate: LocalDateTime
+    val creationDate: Long,
+    val modificationDate: Long
 )
 
 object Notes: Table() {
@@ -22,8 +24,8 @@ object Notes: Table() {
     val title = varchar("title", length = 2048)
     val content = varchar("content", length = 65536)
     val location = integer("location")
-    val creationDate = datetime("creation_date")
-    val modificationDate = datetime("modification_date")
+    val creationDate = long("creation_date")
+    val modificationDate = long("modification_date")
 
     override val primaryKey = PrimaryKey(id)
 }
