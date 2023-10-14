@@ -61,7 +61,7 @@ fun Application.configureLabelRoutes() {
                     return@put
                 }
                 if (!checkIsUserOwner(user.id, label.id)) {
-                    call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(HttpStatusCode.Forbidden)
                     return@put
                 }
                 labelDao.update(label)
@@ -86,7 +86,7 @@ fun Application.configureLabelRoutes() {
                     return@delete
                 }
                 if (!checkIsUserOwner(user.id, labelIdUUID)) {
-                    call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(HttpStatusCode.Forbidden)
                     return@delete
                 }
                 labelDao.delete(labelIdUUID)
