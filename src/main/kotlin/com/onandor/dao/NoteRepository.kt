@@ -6,12 +6,12 @@ import java.util.*
 class NoteRepository: INoteRepository {
     override suspend fun getAllByUser(userId: Int): List<Note> {
         return noteDao.getAllByUser(userId)
-            .map { note -> note.copy(labels = labelDao.getAllIdsByUserAndNote(userId, note.id)) }
+            .map { note -> note.copy(labels = labelDao.getAllByUserAndNote(userId, note.id)) }
     }
 
     override suspend fun getById(noteId: UUID): Note? {
         val note: Note = noteDao.getById(noteId) ?: return null
-        return note.copy(labels = labelDao.getAllIdsByUserAndNote(note.userId, noteId))
+        return note.copy(labels = labelDao.getAllByUserAndNote(note.userId, noteId))
     }
 
     override suspend fun create(note: Note): UUID {
@@ -25,7 +25,7 @@ class NoteRepository: INoteRepository {
         if (result == 0)
             return result
 
-        labelDao.removeAllMissingFromNote(note.id, note.labels)
+        labelDao.removeAllMissingFromNote(note.id, note.labels.map { label -> label.id })
         labelDao.addAllToNoteOrIgnore(note.id, note.labels)
         return result
     }

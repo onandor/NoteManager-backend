@@ -87,21 +87,21 @@ class LabelDao: ILabelDao {
         }.count()
     }
 
-    override suspend fun addToNoteOrIgnore(noteId: UUID, labelId: UUID): Unit = dbQuery {
+    override suspend fun addToNoteOrIgnore(noteId: UUID, label: Label): Unit = dbQuery {
         NoteLabels.insertIgnore {
             it[NoteLabels.noteId] = noteId
-            it[NoteLabels.labelId] = labelId
+            it[NoteLabels.labelId] = label.id
         }
     }
 
-    override suspend fun addAllToNoteOrIgnore(noteId: UUID, labelIds: List<UUID>): Unit = dbQuery {
+    override suspend fun addAllToNoteOrIgnore(noteId: UUID, labels: List<Label>): Unit = dbQuery {
         NoteLabels.batchInsert(
-            labelIds,
+            labels,
             ignore = true,
             shouldReturnGeneratedValues = false
-        ) { labelId ->
+        ) { label ->
             this[NoteLabels.noteId] = noteId
-            this[NoteLabels.labelId] = labelId
+            this[NoteLabels.labelId] = label.id
         }
     }
 

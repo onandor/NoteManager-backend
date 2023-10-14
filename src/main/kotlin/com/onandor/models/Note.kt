@@ -10,7 +10,7 @@ data class Note(
     val userId: Int,
     val title: String,
     val content: String,
-    val labels: List<UUID>,
+    val labels: List<Label>,
     val location: Int,
     val creationDate: LocalDateTime,
     val modificationDate: LocalDateTime

@@ -23,9 +23,9 @@ interface ILabelDao {
 
     suspend fun updateAll(labels: List<Label>): Int
 
-    suspend fun addToNoteOrIgnore(noteId: UUID, labelId: UUID)
+    suspend fun addToNoteOrIgnore(noteId: UUID, label: Label)
 
-    suspend fun addAllToNoteOrIgnore(noteId: UUID, labelIds: List<UUID>)
+    suspend fun addAllToNoteOrIgnore(noteId: UUID, labels: List<Label>)
 
     suspend fun removeAllMissingFromNote(noteId: UUID, labelIds: List<UUID>): Int
 
