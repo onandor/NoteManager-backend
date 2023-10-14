@@ -11,8 +11,10 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.resources.*
+import io.ktor.server.resources.post
+import io.ktor.server.resources.put
 import io.ktor.server.response.*
-import io.ktor.server.routing.routing
+import io.ktor.server.routing.*
 import io.ktor.server.util.*
 import java.util.UUID
 
@@ -20,6 +22,13 @@ import java.util.UUID
 class Notes() {
     @Resource("{id}")
     class Id(val parent: Notes = Notes(), val id: String)
+
+    @Resource("delete")
+    class Delete(val parent: Notes = Notes()) {
+
+        @Resource("{id}")
+        class Id(val parent: Notes = Notes(), val id: String)
+    }
 }
 
 fun Application.configureNoteRoutes() {
@@ -56,7 +65,7 @@ fun Application.configureNoteRoutes() {
 
                 val user: User = getUserFromPrincipal(call)
                 if (!checkIsUserOwner(user.id, noteIdUUID)) {
-                    call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(HttpStatusCode.Forbidden)
                     return@get
                 }
                 call.respond(HttpStatusCode.OK, note!!)
@@ -98,7 +107,7 @@ fun Application.configureNoteRoutes() {
 
         // Delete note
         authenticate {
-            delete<Notes.Id> { noteId ->
+            delete<Notes.Delete.Id> { noteId ->
                 val noteIdUUID: UUID
                 try {
                     noteIdUUID = UUID.fromString(noteId.id)
@@ -113,10 +122,28 @@ fun Application.configureNoteRoutes() {
 
                 val user: User = getUserFromPrincipal(call)
                 if (!checkIsUserOwner(user.id, noteIdUUID)) {
-                    call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(HttpStatusCode.Forbidden)
                     return@delete
                 }
                 noteRepository.delete(noteIdUUID)
+                call.respond(HttpStatusCode.OK)
+            }
+        }
+
+        authenticate {
+            post<Notes.Delete> {
+                val notes: List<String> = call.receive()
+                val user: User = getUserFromPrincipal(call)
+                notes.forEach { noteIdString ->
+                    val noteId = try {
+                        UUID.fromString(noteIdString)
+                    } catch (e: java.lang.IllegalArgumentException) {
+                        return@forEach
+                    }
+                    if (checkIsUserOwner(user.id, noteId)) {
+                        noteRepository.delete(noteId)
+                    }
+                }
                 call.respond(HttpStatusCode.OK)
             }
         }

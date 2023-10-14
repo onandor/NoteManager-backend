@@ -1,8 +1,10 @@
 package com.onandor.dao
 
+import at.favre.lib.crypto.bcrypt.BCrypt
 import com.onandor.dao.DatabaseFactory.dbQuery
 import com.onandor.models.User
 import com.onandor.models.Users
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
@@ -49,4 +51,14 @@ class UserDao : IUserDao {
     }
 }
 
-val userDao: IUserDao = UserDao()
+// TODO: for testing
+val userDao: IUserDao = UserDao().apply {
+    runBlocking {
+        if (getAll().isEmpty()) {
+            val passwordHash: String = BCrypt
+                .withDefaults()
+                .hashToString(12, "asd".toCharArray())
+            create("test@email", passwordHash)
+        }
+    }
+}
