@@ -14,6 +14,8 @@ data class Note(
     val content: String,
     val labels: List<Label>,
     val location: Int,
+    val pinned: Boolean,
+    val pinHash: String,
     val creationDate: Long,
     val modificationDate: Long
 )
@@ -24,6 +26,8 @@ object Notes: Table() {
     val title = varchar("title", length = 2048)
     val content = varchar("content", length = 65536)
     val location = integer("location")
+    val pinned = bool("pinned")
+    val pinHash = varchar("pin_hash", length = 72)
     val creationDate = long("creation_date")
     val modificationDate = long("modification_date")
 

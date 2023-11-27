@@ -7,14 +7,14 @@ data class Label(
     val id: UUID,
     val userId: Int,
     val title: String,
-    val color: String
+    val color: Int
 )
 
 object Labels: Table() {
     val id = uuid("id")
     val userId = integer("user_id")
     val title = varchar("title", length = 30)
-    val color = varchar("color", length = 7)
+    val color = integer("color")
 
     override val primaryKey = PrimaryKey(id)
 }

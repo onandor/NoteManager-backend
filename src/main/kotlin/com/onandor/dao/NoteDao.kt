@@ -16,6 +16,8 @@ class NoteDao : INoteDao {
         row[Notes.content],
         emptyList(),
         row[Notes.location],
+        row[Notes.pinned],
+        row[Notes.pinHash],
         row[Notes.creationDate],
         row[Notes.modificationDate]
     )
@@ -38,6 +40,8 @@ class NoteDao : INoteDao {
             it[title] = note.title
             it[content] = note.content
             it[location] = note.location
+            it[pinned] = note.pinned
+            it[pinHash] = note.pinHash
             it[creationDate] = note.creationDate
             it[modificationDate] = note.modificationDate
         }[Notes.id]
@@ -48,6 +52,8 @@ class NoteDao : INoteDao {
             it[title] = note.title
             it[content] = note.content
             it[location] = note.location
+            it[pinned] = note.pinned
+            it[pinHash] = note.pinHash
             it[modificationDate] = note.modificationDate
         }
     }
