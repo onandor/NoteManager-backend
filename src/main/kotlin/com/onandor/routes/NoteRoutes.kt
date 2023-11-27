@@ -29,6 +29,9 @@ class Notes() {
         @Resource("{id}")
         class Id(val parent: Notes = Notes(), val id: String)
     }
+
+    @Resource("sync")
+    class Sync(val parent: Notes = Notes())
 }
 
 fun Application.configureNoteRoutes() {
@@ -101,6 +104,17 @@ fun Application.configureNoteRoutes() {
                     return@put
                 }
                 noteRepository.update(note)
+                call.respond(HttpStatusCode.OK)
+            }
+        }
+
+        // Update or insert modified or new notes
+        authenticate {
+            put<Notes.Sync> {
+                val user: User = getUserFromPrincipal(call)
+                val notes: List<Note> = call.receive()
+                val ownedNotes = notes.filter { note -> note.userId == user.id }
+                noteRepository.upsertAllIfNewer(ownedNotes)
                 call.respond(HttpStatusCode.OK)
             }
         }

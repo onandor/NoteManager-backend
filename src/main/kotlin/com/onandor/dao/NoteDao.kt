@@ -5,6 +5,7 @@ import com.onandor.models.Note
 import com.onandor.models.Notes
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 
 class NoteDao : INoteDao {
@@ -55,6 +56,40 @@ class NoteDao : INoteDao {
             it[pinned] = note.pinned
             it[pinHash] = note.pinHash
             it[modificationDate] = note.modificationDate
+        }
+    }
+
+    override suspend fun upsertAllIfNewer(notes: List<Note>): Int = dbQuery {
+        transaction {
+            Notes.batchInsert(
+                data = notes,
+                ignore = true,
+                shouldReturnGeneratedValues = false
+            ) { note ->
+                this[Notes.id] = note.id
+                this[Notes.userId] = note.userId
+                this[Notes.title] = note.title
+                this[Notes.content] = note.content
+                this[Notes.location] = note.location
+                this[Notes.pinned] = note.pinned
+                this[Notes.pinHash] = note.pinHash
+                this[Notes.creationDate] = note.creationDate
+                this[Notes.modificationDate] = note.modificationDate
+            }
+            var updated = 0
+            notes.forEach { note ->
+                updated += Notes.update(
+                    { Notes.id eq note.id and (Notes.modificationDate less note.modificationDate) }
+                ) {
+                    it[title] = note.title
+                    it[content] = note.content
+                    it[location] = note.location
+                    it[pinned] = note.pinned
+                    it[pinHash] = note.pinHash
+                    it[modificationDate] = note.modificationDate
+                }
+            }
+            updated
         }
     }
 

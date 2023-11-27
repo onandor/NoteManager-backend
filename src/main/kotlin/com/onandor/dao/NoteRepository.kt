@@ -30,6 +30,18 @@ class NoteRepository: INoteRepository {
         return result
     }
 
+    override suspend fun upsertAllIfNewer(notes: List<Note>): Int {
+        val result = noteDao.upsertAllIfNewer(notes)
+        if (result == 0)
+            return result
+
+        notes.forEach { note ->
+            labelDao.removeAllMissingFromNote(note.id, note.labels.map { label -> label.id })
+            labelDao.addAllToNoteOrIgnore(note.id, note.labels)
+        }
+        return result
+    }
+
     override suspend fun delete(noteId: UUID): Int {
         var result: Int = 0
         result += noteDao.delete(noteId)
