@@ -76,9 +76,8 @@ class NoteDao : INoteDao {
                 this[Notes.creationDate] = note.creationDate
                 this[Notes.modificationDate] = note.modificationDate
             }
-            var updated = 0
             notes.forEach { note ->
-                updated += Notes.update(
+                Notes.update(
                     { Notes.id eq note.id and (Notes.modificationDate less note.modificationDate) }
                 ) {
                     it[title] = note.title
@@ -89,7 +88,11 @@ class NoteDao : INoteDao {
                     it[modificationDate] = note.modificationDate
                 }
             }
-            updated
+            // batchInsert always returns with ALL the rows it checked and not just with the rows it ACTUALLY inserted,
+            // so the number of affected rows cannot be correctly determined
+            // batchUpsert doesn't work with h2 MYSQL compatibility mode, so I cannot use that for now
+            // Here is this random number, I don't care
+            122114
         }
     }
 
