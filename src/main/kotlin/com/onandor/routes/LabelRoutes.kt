@@ -19,6 +19,9 @@ import java.util.*
 class Labels() {
     @Resource("{id}")
     class Id(val parent: Labels = Labels(), val id: String)
+
+    @Resource("sync")
+    class Sync(val parent: Labels = Labels())
 }
 
 fun Application.configureLabelRoutes() {
@@ -65,6 +68,17 @@ fun Application.configureLabelRoutes() {
                     return@put
                 }
                 labelDao.update(label)
+                call.respond(HttpStatusCode.OK)
+            }
+        }
+
+        // Update or insert modified or new labels
+        authenticate {
+            put<Labels.Sync> {
+                val user: User = getUserFromPrincipal(call)
+                val labels: List<Label> = call.receive()
+                val ownedLabels = labels.filter { label -> label.userId == user.id }
+                labelDao.upsertAllIfNewer(ownedLabels)
                 call.respond(HttpStatusCode.OK)
             }
         }

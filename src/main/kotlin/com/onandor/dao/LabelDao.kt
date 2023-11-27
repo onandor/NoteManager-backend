@@ -6,7 +6,9 @@ import com.onandor.models.Labels
 import com.onandor.models.NoteLabels
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.notInList
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 
 class LabelDao: ILabelDao {
@@ -15,7 +17,9 @@ class LabelDao: ILabelDao {
         row[Labels.id],
         row[Labels.userId],
         row[Labels.title],
-        row[Labels.color]
+        row[Labels.color],
+        row[Labels.creationDate],
+        row[Labels.modificationDate]
     )
 
     override suspend fun getById(labelId: UUID): Label? = dbQuery {
@@ -50,6 +54,8 @@ class LabelDao: ILabelDao {
             it[userId] = label.userId
             it[title] = label.title
             it[color] = label.color
+            it[creationDate] = label.creationDate
+            it[modificationDate] = label.modificationDate
         }[Labels.id]
     }
 
@@ -59,6 +65,8 @@ class LabelDao: ILabelDao {
             it[userId] = label.userId
             it[title] = label.title
             it[color] = label.color
+            it[creationDate] = creationDate
+            it[modificationDate] = modificationDate
         }[Labels.id]
     }
 
@@ -75,15 +83,20 @@ class LabelDao: ILabelDao {
         Labels.update( { Labels.id eq label.id } ) {
             it[title] = label.title
             it[color] = label.color
+            it[modificationDate] = label.modificationDate
         }
     }
 
     override suspend fun updateAll(labels: List<Label>): Int = dbQuery {
-        Labels.batchReplace(labels, shouldReturnGeneratedValues = true) {(id, userId, value, color) ->
+        Labels.batchReplace(
+            labels, shouldReturnGeneratedValues = true
+        ) {(id, userId, value, color, creationDate, modificationDate) ->
             this[Labels.id] = id
             this[Labels.userId] = userId
             this[Labels.title] = value
             this[Labels.color] = color
+            this[Labels.creationDate] = creationDate
+            this[Labels.modificationDate] = modificationDate
         }.count()
     }
 
@@ -118,6 +131,30 @@ class LabelDao: ILabelDao {
         result += NoteLabels.deleteWhere { NoteLabels.labelId eq labelId }
         result += Labels.deleteWhere { Labels.id eq labelId }
         result
+    }
+
+    override suspend fun upsertAllIfNewer(labels: List<Label>) = dbQuery {
+        transaction {
+            Labels.batchInsert(
+                data = labels,
+                ignore = true,
+                shouldReturnGeneratedValues = false
+            ) { label ->
+                this[Labels.id] = label.id
+                this[Labels.userId] = label.userId
+                this[Labels.title] = label.title
+                this[Labels.color] = label.color
+                this[Labels.creationDate] = label.creationDate
+                this[Labels.modificationDate] = label.modificationDate
+            }
+            labels.forEach { label ->
+                Labels.update({ Labels.id eq label.id and (Labels.modificationDate less label.modificationDate) }) {
+                    it[title] = label.title
+                    it[color] = label.color
+                    it[modificationDate] = label.modificationDate
+                }
+            }
+        }
     }
 }
 

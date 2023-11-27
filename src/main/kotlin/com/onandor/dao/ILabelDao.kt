@@ -32,4 +32,6 @@ interface ILabelDao {
     suspend fun removeAllFromNote(noteId: UUID): Int
 
     suspend fun delete(labelId: UUID): Int
+
+    suspend fun upsertAllIfNewer(labels: List<Label>)
 }
