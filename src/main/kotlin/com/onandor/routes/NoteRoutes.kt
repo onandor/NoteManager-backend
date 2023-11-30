@@ -27,7 +27,7 @@ class Notes() {
     class Delete(val parent: Notes = Notes()) {
 
         @Resource("{id}")
-        class Id(val parent: Notes = Notes(), val id: String)
+        class Id(val parent: Delete = Delete(), val id: String)
     }
 
     @Resource("sync")
@@ -150,6 +150,7 @@ fun Application.configureNoteRoutes() {
             }
         }
 
+        // Delete multiple notes at the same time
         authenticate {
             post<Notes.Delete> {
                 val notes: List<String> = call.receive()
