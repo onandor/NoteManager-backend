@@ -126,11 +126,32 @@ class LabelDao: ILabelDao {
         NoteLabels.deleteWhere { NoteLabels.noteId eq noteId }
     }
 
+    override suspend fun removeAllFromNotes(noteIds: List<UUID>): Int = dbQuery {
+        transaction {
+            var deleted = 0
+            noteIds.forEach { noteId ->
+                deleted += NoteLabels.deleteWhere { NoteLabels.noteId eq noteId }
+            }
+            deleted
+        }
+    }
+
     override suspend fun delete(labelId: UUID): Int = dbQuery {
         var result = 0
         result += NoteLabels.deleteWhere { NoteLabels.labelId eq labelId }
         result += Labels.deleteWhere { Labels.id eq labelId }
         result
+    }
+
+    override suspend fun deleteAllByIds(labelIds: List<UUID>): Int = dbQuery {
+        transaction {
+            var result = 0
+            labelIds.forEach { labelId ->
+                result += NoteLabels.deleteWhere { NoteLabels.labelId eq labelId }
+                result += Labels.deleteWhere { Labels.id eq labelId }
+            }
+            result
+        }
     }
 
     override suspend fun upsertAllIfNewer(labels: List<Label>) = dbQuery {

@@ -17,5 +17,7 @@ interface INoteRepository {
 
     suspend fun delete(noteId: UUID): Int
 
+    suspend fun deleteAllByIds(noteIds: List<UUID>): Int
+
     suspend fun deleteAllByUser(userId: Int)
 }

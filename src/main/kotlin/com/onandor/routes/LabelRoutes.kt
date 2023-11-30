@@ -72,13 +72,19 @@ fun Application.configureLabelRoutes() {
             }
         }
 
-        // Update or insert modified or new labels
+        // Update or insert modified or new labels, delete missing labels
         authenticate {
             put<Labels.Sync> {
                 val user: User = getUserFromPrincipal(call)
                 val labels: List<Label> = call.receive()
                 val ownedLabels = labels.filter { label -> label.userId == user.id }
                 labelDao.upsertAllIfNewer(ownedLabels)
+
+                val userLabels = labelDao.getAllByUser(user.id)
+                val deletedLabels = userLabels.filterNot { userLabel ->
+                    ownedLabels.any { ownedLabel -> userLabel.id == ownedLabel.id }
+                }
+                labelDao.deleteAllByIds(deletedLabels.map { label -> label.id })
                 call.respond(HttpStatusCode.OK)
             }
         }

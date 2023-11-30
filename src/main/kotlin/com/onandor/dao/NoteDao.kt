@@ -100,6 +100,16 @@ class NoteDao : INoteDao {
         Notes.deleteWhere { Notes.id eq noteId }
     }
 
+    override suspend fun deleteAllByIds(noteIds: List<UUID>): Int = dbQuery {
+        transaction {
+            var deleted = 0
+            noteIds.forEach { noteId ->
+                deleted += Notes.deleteWhere { Notes.id eq noteId }
+            }
+            deleted
+        }
+    }
+
     override suspend fun deleteAllByUser(userId: Int): Int = dbQuery {
         Notes.deleteWhere { Notes.userId eq userId }
     }

@@ -49,6 +49,13 @@ class NoteRepository: INoteRepository {
         return result
     }
 
+    override suspend fun deleteAllByIds(noteIds: List<UUID>): Int {
+        var result = 0
+        result += noteDao.deleteAllByIds(noteIds)
+        result += labelDao.removeAllFromNotes(noteIds)
+        return result
+    }
+
     override suspend fun deleteAllByUser(userId: Int) {
         noteDao.getAllByUser(userId).forEach { note ->
             labelDao.removeAllFromNote(note.id)

@@ -108,13 +108,19 @@ fun Application.configureNoteRoutes() {
             }
         }
 
-        // Update or insert modified or new notes
+        // Update or insert modified or new notes, delete missing notes
         authenticate {
             put<Notes.Sync> {
                 val user: User = getUserFromPrincipal(call)
                 val notes: List<Note> = call.receive()
                 val ownedNotes = notes.filter { note -> note.userId == user.id }
                 noteRepository.upsertAllIfNewer(ownedNotes)
+
+                val userNotes = noteRepository.getAllByUser(user.id)
+                val deletedNotes = userNotes.filterNot { userNote ->
+                    ownedNotes.any { ownedNote -> userNote.id == ownedNote.id }
+                }
+                noteRepository.deleteAllByIds(deletedNotes.map { note -> note.id })
                 call.respond(HttpStatusCode.OK)
             }
         }
