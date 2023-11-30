@@ -113,14 +113,13 @@ fun Application.configureNoteRoutes() {
             put<Notes.Sync> {
                 val user: User = getUserFromPrincipal(call)
                 val notes: List<Note> = call.receive()
-                val ownedNotes = notes.filter { note -> note.userId == user.id }
-                noteRepository.upsertAllIfNewer(ownedNotes)
-
                 val userNotes = noteRepository.getAllByUser(user.id)
-                val deletedNotes = userNotes.filterNot { userNote ->
-                    ownedNotes.any { ownedNote -> userNote.id == ownedNote.id }
+                val ownedNotes = notes.filter { note ->
+                    userNotes.any { userNote -> note.id == userNote.id && note.userId == userNote.userId }
                 }
-                noteRepository.deleteAllByIds(deletedNotes.map { note -> note.id })
+                val partitionedNotes = ownedNotes.partition { note -> !note.deleted }
+                noteRepository.upsertAllIfNewer(partitionedNotes.first)
+                noteRepository.deleteAllByIds(partitionedNotes.second.map { note -> note.id })
                 call.respond(HttpStatusCode.OK)
             }
         }

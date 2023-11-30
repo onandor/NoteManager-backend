@@ -18,6 +18,7 @@ class LabelDao: ILabelDao {
         row[Labels.userId],
         row[Labels.title],
         row[Labels.color],
+        row[Labels.deleted],
         row[Labels.creationDate],
         row[Labels.modificationDate]
     )
@@ -54,6 +55,7 @@ class LabelDao: ILabelDao {
             it[userId] = label.userId
             it[title] = label.title
             it[color] = label.color
+            it[deleted] = label.deleted
             it[creationDate] = label.creationDate
             it[modificationDate] = label.modificationDate
         }[Labels.id]
@@ -65,6 +67,7 @@ class LabelDao: ILabelDao {
             it[userId] = label.userId
             it[title] = label.title
             it[color] = label.color
+            it[deleted] = label.deleted
             it[creationDate] = creationDate
             it[modificationDate] = modificationDate
         }[Labels.id]
@@ -90,11 +93,12 @@ class LabelDao: ILabelDao {
     override suspend fun updateAll(labels: List<Label>): Int = dbQuery {
         Labels.batchReplace(
             labels, shouldReturnGeneratedValues = true
-        ) {(id, userId, value, color, creationDate, modificationDate) ->
+        ) {(id, userId, value, color, deleted, creationDate, modificationDate) ->
             this[Labels.id] = id
             this[Labels.userId] = userId
             this[Labels.title] = value
             this[Labels.color] = color
+            this[Labels.deleted] = deleted
             this[Labels.creationDate] = creationDate
             this[Labels.modificationDate] = modificationDate
         }.count()
@@ -165,6 +169,7 @@ class LabelDao: ILabelDao {
                 this[Labels.userId] = label.userId
                 this[Labels.title] = label.title
                 this[Labels.color] = label.color
+                this[Labels.deleted] = label.deleted
                 this[Labels.creationDate] = label.creationDate
                 this[Labels.modificationDate] = label.modificationDate
             }

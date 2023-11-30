@@ -8,6 +8,7 @@ data class Label(
     val userId: Int,
     val title: String,
     val color: Int,
+    val deleted: Boolean,
     val creationDate: Long,
     val modificationDate: Long
 )
@@ -17,6 +18,7 @@ object Labels: Table() {
     val userId = integer("user_id")
     val title = varchar("title", length = 30)
     val color = integer("color")
+    val deleted = bool("deleted")
     val creationDate = long("creation_date")
     val modificationDate = long("modification_date")
 

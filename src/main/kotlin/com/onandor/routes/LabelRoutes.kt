@@ -77,14 +77,13 @@ fun Application.configureLabelRoutes() {
             put<Labels.Sync> {
                 val user: User = getUserFromPrincipal(call)
                 val labels: List<Label> = call.receive()
-                val ownedLabels = labels.filter { label -> label.userId == user.id }
-                labelDao.upsertAllIfNewer(ownedLabels)
-
                 val userLabels = labelDao.getAllByUser(user.id)
-                val deletedLabels = userLabels.filterNot { userLabel ->
-                    ownedLabels.any { ownedLabel -> userLabel.id == ownedLabel.id }
+                val ownedLabels = labels.filter { label ->
+                    userLabels.any { userLabel -> label.id == userLabel.id && label.userId == userLabel.userId }
                 }
-                labelDao.deleteAllByIds(deletedLabels.map { label -> label.id })
+                val partitionedLabels = ownedLabels.partition { label -> !label.deleted }
+                labelDao.upsertAllIfNewer(partitionedLabels.first)
+                labelDao.deleteAllByIds(partitionedLabels.second.map { label -> label.id })
                 call.respond(HttpStatusCode.OK)
             }
         }

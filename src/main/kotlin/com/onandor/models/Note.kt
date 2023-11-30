@@ -16,6 +16,7 @@ data class Note(
     val location: Int,
     val pinned: Boolean,
     val pinHash: String,
+    val deleted: Boolean,
     val creationDate: Long,
     val modificationDate: Long
 )
@@ -28,6 +29,7 @@ object Notes: Table() {
     val location = integer("location")
     val pinned = bool("pinned")
     val pinHash = varchar("pin_hash", length = 72)
+    val deleted = bool("deleted")
     val creationDate = long("creation_date")
     val modificationDate = long("modification_date")
 
