@@ -118,8 +118,14 @@ fun Application.configureNoteRoutes() {
                     userNotes.any { userNote -> note.id == userNote.id && note.userId == userNote.userId }
                 }
                 val partitionedNotes = ownedNotes.partition { note -> !note.deleted }
-                noteRepository.upsertAllIfNewer(partitionedNotes.first)
-                noteRepository.deleteAllByIds(partitionedNotes.second.map { note -> note.id })
+                // Delete all notes that were marked as deleted on the client since the last sync
+                noteRepository.deleteAllByIds(partitionedNotes.second.map { note -> note.id }, user.id)
+                val deletedNotes = noteRepository.getAllDeletedByUser(user.id)
+                // Only upsert notes that aren't marked as deleted (maybe by another client)
+                val notesToUpsert = partitionedNotes.first.filterNot { note ->
+                    deletedNotes.any { deletedNote -> note.id == deletedNote.noteId }
+                }
+                noteRepository.upsertAllIfNewer(notesToUpsert)
                 call.respond(HttpStatusCode.OK)
             }
         }
@@ -144,7 +150,7 @@ fun Application.configureNoteRoutes() {
                     call.respond(HttpStatusCode.Forbidden)
                     return@delete
                 }
-                noteRepository.delete(noteIdUUID)
+                noteRepository.delete(noteIdUUID, user.id)
                 call.respond(HttpStatusCode.OK)
             }
         }
@@ -152,18 +158,21 @@ fun Application.configureNoteRoutes() {
         // Delete multiple notes at the same time
         authenticate {
             post<Notes.Delete> {
-                val notes: List<String> = call.receive()
+                val noteIdsString: List<String> = call.receive()
                 val user: User = getUserFromPrincipal(call)
-                notes.forEach { noteIdString ->
+                val userNotes = noteRepository.getAllByUser(user.id)
+                val ownedNoteIds: MutableList<UUID> = mutableListOf()
+                noteIdsString.forEach { noteIdString ->
                     val noteId = try {
                         UUID.fromString(noteIdString)
                     } catch (e: java.lang.IllegalArgumentException) {
                         return@forEach
                     }
-                    if (checkIsUserOwner(user.id, noteId)) {
-                        noteRepository.delete(noteId)
+                    if (userNotes.any { userNote -> noteId == userNote.id }) {
+                        ownedNoteIds.add(noteId)
                     }
                 }
+                noteRepository.deleteAllByIds(ownedNoteIds, user.id)
                 call.respond(HttpStatusCode.OK)
             }
         }

@@ -82,8 +82,14 @@ fun Application.configureLabelRoutes() {
                     userLabels.any { userLabel -> label.id == userLabel.id && label.userId == userLabel.userId }
                 }
                 val partitionedLabels = ownedLabels.partition { label -> !label.deleted }
-                labelDao.upsertAllIfNewer(partitionedLabels.first)
-                labelDao.deleteAllByIds(partitionedLabels.second.map { label -> label.id })
+                // Delete all labels that were marked as deleted on the client since the last sync
+                labelDao.deleteAllByIds(partitionedLabels.second.map { label -> label.id }, user.id)
+                val deletedLabels = labelDao.getAllDeletedByUser(user.id)
+                // Only upsert labels that aren't marked as deleted (maybe by another client)
+                val labelsToUpsert = partitionedLabels.first.filterNot { label ->
+                    deletedLabels.any { deletedLabel -> label.id == deletedLabel.labelId }
+                }
+                labelDao.upsertAllIfNewer(labelsToUpsert)
                 call.respond(HttpStatusCode.OK)
             }
         }
@@ -108,7 +114,7 @@ fun Application.configureLabelRoutes() {
                     call.respond(HttpStatusCode.Forbidden)
                     return@delete
                 }
-                labelDao.delete(labelIdUUID)
+                labelDao.delete(labelIdUUID, user.id)
                 call.respond(HttpStatusCode.OK)
             }
         }

@@ -1,5 +1,6 @@
 package com.onandor.dao
 
+import com.onandor.models.DeletedLabel
 import com.onandor.models.Label
 import java.util.*
 
@@ -12,6 +13,8 @@ interface ILabelDao {
     suspend fun getAllByUserAndNote(userId: Int, noteId: UUID): List<Label>
 
     suspend fun getAllIdsByUserAndNote(userId: Int, noteId: UUID): List<UUID>
+
+    suspend fun getAllDeletedByUser(userId: Int): List<DeletedLabel>
 
     suspend fun create(label: Label): UUID
 
@@ -33,9 +36,9 @@ interface ILabelDao {
 
     suspend fun removeAllFromNotes(noteIds: List<UUID>): Int
 
-    suspend fun delete(labelId: UUID): Int
+    suspend fun delete(labelId: UUID, userId: Int): Int
 
-    suspend fun deleteAllByIds(labelIds: List<UUID>): Int
+    suspend fun deleteAllByIds(labelIds: List<UUID>, userId: Int): Int
 
     suspend fun upsertAllIfNewer(labels: List<Label>)
 }

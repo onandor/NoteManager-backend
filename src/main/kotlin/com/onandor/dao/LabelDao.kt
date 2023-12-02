@@ -1,9 +1,7 @@
 package com.onandor.dao
 
 import com.onandor.dao.DatabaseFactory.dbQuery
-import com.onandor.models.Label
-import com.onandor.models.Labels
-import com.onandor.models.NoteLabels
+import com.onandor.models.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
@@ -47,6 +45,16 @@ class LabelDao: ILabelDao {
 
     override suspend fun getAllIdsByUserAndNote(userId: Int, noteId: UUID): List<UUID> = dbQuery {
         getAllByUserAndNote(userId, noteId).map { label -> label.id }
+    }
+
+    override suspend fun getAllDeletedByUser(userId: Int): List<DeletedLabel> = dbQuery {
+        DeletedLabels.select { DeletedLabels.userId eq userId }
+            .map { row ->
+                DeletedLabel(
+                    labelId = row[DeletedLabels.labelId],
+                    userId = row[DeletedLabels.userId]
+                )
+            }
     }
 
     override suspend fun create(label: Label): UUID = dbQuery {
@@ -131,54 +139,58 @@ class LabelDao: ILabelDao {
     }
 
     override suspend fun removeAllFromNotes(noteIds: List<UUID>): Int = dbQuery {
-        transaction {
-            var deleted = 0
-            noteIds.forEach { noteId ->
-                deleted += NoteLabels.deleteWhere { NoteLabels.noteId eq noteId }
-            }
-            deleted
+        var deleted = 0
+        noteIds.forEach { noteId ->
+            deleted += NoteLabels.deleteWhere { NoteLabels.noteId eq noteId }
         }
+        deleted
     }
 
-    override suspend fun delete(labelId: UUID): Int = dbQuery {
+    override suspend fun delete(labelId: UUID, userId: Int): Int = dbQuery {
+        NoteLabels.deleteWhere { NoteLabels.labelId eq labelId }
+        DeletedLabels.insertIgnore {
+            it[DeletedLabels.labelId] = labelId
+            it[DeletedLabels.userId] = userId
+        }
+        Labels.deleteWhere { Labels.id eq labelId }
+    }
+
+    override suspend fun deleteAllByIds(labelIds: List<UUID>, userId: Int): Int = dbQuery {
+        DeletedLabels.batchInsert(
+            data = labelIds,
+            ignore = true,
+            shouldReturnGeneratedValues = false
+        ) { labelId ->
+            this[DeletedLabels.labelId] = labelId
+            this[DeletedLabels.userId] = userId
+        }
         var result = 0
-        result += NoteLabels.deleteWhere { NoteLabels.labelId eq labelId }
-        result += Labels.deleteWhere { Labels.id eq labelId }
+        labelIds.forEach { labelId ->
+            NoteLabels.deleteWhere { NoteLabels.labelId eq labelId }
+            result += Labels.deleteWhere { Labels.id eq labelId }
+        }
         result
     }
 
-    override suspend fun deleteAllByIds(labelIds: List<UUID>): Int = dbQuery {
-        transaction {
-            var result = 0
-            labelIds.forEach { labelId ->
-                result += NoteLabels.deleteWhere { NoteLabels.labelId eq labelId }
-                result += Labels.deleteWhere { Labels.id eq labelId }
-            }
-            result
-        }
-    }
-
     override suspend fun upsertAllIfNewer(labels: List<Label>) = dbQuery {
-        transaction {
-            Labels.batchInsert(
-                data = labels,
-                ignore = true,
-                shouldReturnGeneratedValues = false
-            ) { label ->
-                this[Labels.id] = label.id
-                this[Labels.userId] = label.userId
-                this[Labels.title] = label.title
-                this[Labels.color] = label.color
-                this[Labels.deleted] = label.deleted
-                this[Labels.creationDate] = label.creationDate
-                this[Labels.modificationDate] = label.modificationDate
-            }
-            labels.forEach { label ->
-                Labels.update({ Labels.id eq label.id and (Labels.modificationDate less label.modificationDate) }) {
-                    it[title] = label.title
-                    it[color] = label.color
-                    it[modificationDate] = label.modificationDate
-                }
+        Labels.batchInsert(
+            data = labels,
+            ignore = true,
+            shouldReturnGeneratedValues = false
+        ) { label ->
+            this[Labels.id] = label.id
+            this[Labels.userId] = label.userId
+            this[Labels.title] = label.title
+            this[Labels.color] = label.color
+            this[Labels.deleted] = label.deleted
+            this[Labels.creationDate] = label.creationDate
+            this[Labels.modificationDate] = label.modificationDate
+        }
+        labels.forEach { label ->
+            Labels.update({ Labels.id eq label.id and (Labels.modificationDate less label.modificationDate) }) {
+                it[title] = label.title
+                it[color] = label.color
+                it[modificationDate] = label.modificationDate
             }
         }
     }

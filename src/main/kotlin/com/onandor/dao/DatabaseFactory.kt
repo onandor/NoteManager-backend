@@ -22,6 +22,8 @@ object DatabaseFactory {
             SchemaUtils.create(RefreshTokens)
             SchemaUtils.create(Labels)
             SchemaUtils.create(NoteLabels)
+            SchemaUtils.create(DeletedNotes)
+            SchemaUtils.create(DeletedLabels)
         }
     }
 

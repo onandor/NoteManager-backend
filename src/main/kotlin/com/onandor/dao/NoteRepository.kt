@@ -1,5 +1,6 @@
 package com.onandor.dao
 
+import com.onandor.models.DeletedNote
 import com.onandor.models.Note
 import java.util.*
 
@@ -12,6 +13,10 @@ class NoteRepository: INoteRepository {
     override suspend fun getById(noteId: UUID): Note? {
         val note: Note = noteDao.getById(noteId) ?: return null
         return note.copy(labels = labelDao.getAllByUserAndNote(note.userId, noteId))
+    }
+
+    override suspend fun getAllDeletedByUser(userId: Int): List<DeletedNote> {
+        return noteDao.getAllDeletedByUser(userId)
     }
 
     override suspend fun create(note: Note): UUID {
@@ -42,18 +47,14 @@ class NoteRepository: INoteRepository {
         return result
     }
 
-    override suspend fun delete(noteId: UUID): Int {
-        var result: Int = 0
-        result += noteDao.delete(noteId)
-        result += labelDao.removeAllFromNote(noteId)
-        return result
+    override suspend fun delete(noteId: UUID, userId: Int): Int {
+        labelDao.removeAllFromNote(noteId)
+        return noteDao.delete(noteId, userId)
     }
 
-    override suspend fun deleteAllByIds(noteIds: List<UUID>): Int {
-        var result = 0
-        result += noteDao.deleteAllByIds(noteIds)
-        result += labelDao.removeAllFromNotes(noteIds)
-        return result
+    override suspend fun deleteAllByIds(noteIds: List<UUID>, userId: Int): Int {
+        labelDao.removeAllFromNotes(noteIds)
+        return noteDao.deleteAllByIds(noteIds, userId)
     }
 
     override suspend fun deleteAllByUser(userId: Int) {
@@ -62,7 +63,7 @@ class NoteRepository: INoteRepository {
         }
         noteDao.deleteAllByUser(userId)
         labelDao.getAllByUser(userId).forEach { label ->
-            labelDao.delete(label.id)
+            labelDao.delete(label.id, userId)
         }
     }
 }

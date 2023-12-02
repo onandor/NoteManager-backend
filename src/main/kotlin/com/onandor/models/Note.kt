@@ -21,6 +21,11 @@ data class Note(
     val modificationDate: Long
 )
 
+data class DeletedNote(
+    val noteId: UUID,
+    val userId: Int
+)
+
 object Notes: Table() {
     val id = uuid("id")
     val userId = integer("user_id")
@@ -34,4 +39,11 @@ object Notes: Table() {
     val modificationDate = long("modification_date")
 
     override val primaryKey = PrimaryKey(id)
+}
+
+object DeletedNotes: Table() {
+    val noteId = uuid("note_id")
+    val userId = integer("user_id")
+
+    override val primaryKey = PrimaryKey(noteId)
 }
