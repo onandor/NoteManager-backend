@@ -75,7 +75,7 @@ fun Application.configureNoteRoutes() {
                     call.respond(HttpStatusCode.Forbidden)
                     return@get
                 }
-                call.respond(HttpStatusCode.OK, note!!)
+                call.respond(HttpStatusCode.OK, note)
             }
         }
 

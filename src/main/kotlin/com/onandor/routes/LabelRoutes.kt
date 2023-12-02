@@ -44,6 +44,31 @@ fun Application.configureLabelRoutes() {
             }
         }
 
+        // Get a specific label of a user by label id
+        authenticate {
+            get<Labels.Id> { labelId ->
+                val labelIdUUID: UUID
+                try {
+                    labelIdUUID = UUID.fromString(labelId.id)
+                } catch (e: java.lang.IllegalArgumentException) {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@get
+                }
+                val label: Label? = labelDao.getById(labelIdUUID)
+                if (label == null) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@get
+                }
+
+                val user: User = getUserFromPrincipal(call)
+                if (!checkIsUserOwner(user.id, labelIdUUID)) {
+                    call.respond(HttpStatusCode.Forbidden)
+                    return@get
+                }
+                call.respond(HttpStatusCode.OK, label)
+            }
+        }
+
         // Add a new label
         authenticate {
             post<Labels> {
