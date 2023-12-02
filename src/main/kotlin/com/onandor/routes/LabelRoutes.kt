@@ -21,7 +21,11 @@ class Labels() {
     class Id(val parent: Labels = Labels(), val id: String)
 
     @Resource("sync")
-    class Sync(val parent: Labels = Labels())
+    class Sync(val parent: Labels = Labels()) {
+
+        @Resource("single")
+        class Single(val parent: Sync = Sync())
+    }
 }
 
 fun Application.configureLabelRoutes() {
@@ -90,6 +94,23 @@ fun Application.configureLabelRoutes() {
                     deletedLabels.any { deletedLabel -> label.id == deletedLabel.labelId }
                 }
                 labelDao.upsertAllIfNewer(labelsToUpsert)
+                call.respond(HttpStatusCode.OK)
+            }
+        }
+
+        authenticate {
+            put<Labels.Sync.Single> {
+                val user: User = getUserFromPrincipal(call)
+                val label: Label = call.receive<Label>().copy(userId = user.id)
+                if (label.deleted) {
+                    labelDao.delete(label.id, user.id)
+                    call.respond(HttpStatusCode.OK)
+                    return@put
+                }
+                val deletedLabels = labelDao.getAllDeletedByUser(user.id)
+                if (!deletedLabels.any { deletedLabel -> label.id == deletedLabel.labelId }) {
+                    labelDao.upsertAllIfNewer(listOf(label))
+                }
                 call.respond(HttpStatusCode.OK)
             }
         }

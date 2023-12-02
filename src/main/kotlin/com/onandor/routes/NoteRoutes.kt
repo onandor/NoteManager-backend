@@ -31,7 +31,11 @@ class Notes() {
     }
 
     @Resource("sync")
-    class Sync(val parent: Notes = Notes())
+    class Sync(val parent: Notes = Notes()) {
+
+        @Resource("single")
+        class Single(val parent: Sync = Sync())
+    }
 }
 
 fun Application.configureNoteRoutes() {
@@ -79,12 +83,8 @@ fun Application.configureNoteRoutes() {
         authenticate {
             post<Notes> {
                 val user: User = getUserFromPrincipal(call)
-                val note: Note = call.receive()
-                // Make sure the user doesn't create a note for somebody else
-                val userNote = note.copy(
-                    userId = user.id
-                )
-                val noteId = noteRepository.create(userNote)
+                val note: Note = call.receive<Note>().copy(userId = user.id)
+                val noteId = noteRepository.create(note)
                 call.respond(HttpStatusCode.Created, hashMapOf("id" to noteId))
             }
         }
@@ -126,6 +126,23 @@ fun Application.configureNoteRoutes() {
                     deletedNotes.any { deletedNote -> note.id == deletedNote.noteId }
                 }
                 noteRepository.upsertAllIfNewer(notesToUpsert)
+                call.respond(HttpStatusCode.OK)
+            }
+        }
+
+        authenticate {
+            put<Notes.Sync.Single> {
+                val user: User = getUserFromPrincipal(call)
+                val note: Note = call.receive<Note>().copy(userId = user.id)
+                if (note.deleted) {
+                    noteRepository.delete(note.id, user.id)
+                    call.respond(HttpStatusCode.OK)
+                    return@put
+                }
+                val deletedNotes = noteRepository.getAllDeletedByUser(user.id)
+                if (!deletedNotes.any { deletedNote -> note.id == deletedNote.noteId }) {
+                    noteRepository.upsertAllIfNewer(listOf(note))
+                }
                 call.respond(HttpStatusCode.OK)
             }
         }
