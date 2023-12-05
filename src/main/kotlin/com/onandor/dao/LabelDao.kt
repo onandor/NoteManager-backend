@@ -81,13 +81,13 @@ class LabelDao: ILabelDao {
         }[Labels.id]
     }
 
-    override suspend fun createOrIgnoreAndAddToNote(noteId: UUID, label: Label): UUID {
+    override suspend fun createOrIgnoreAndAddToNote(noteId: UUID, label: Label): UUID = dbQuery {
         val labelId = createOrIgnore(label)
         NoteLabels.insert {
             it[NoteLabels.labelId] = labelId
             it[NoteLabels.noteId] = noteId
         }
-        return labelId
+        labelId
     }
 
     override suspend fun update(label: Label): Int = dbQuery {
